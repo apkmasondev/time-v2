@@ -108,20 +108,20 @@ function applyLang() {
 // ------------------------------------------------------------------ film grain + cursor
 $('.grain').style.backgroundImage = `url(${grainDataURL()})`;
 
+// the hand sits exactly on the pointer (no trailing lag), written once per frame
 const cursor = {
-  el: $('#cursor'), dot: $('#cursor .cursor__dot'),
-  x: innerWidth / 2, y: innerHeight / 2, rx: innerWidth / 2, ry: innerHeight / 2,
+  el: $('#cursor'), x: innerWidth / 2, y: innerHeight / 2, moved: true,
   update() {
-    if (!finePointer) return;
-    this.rx += (this.x - this.rx) * 0.2;
-    this.ry += (this.y - this.ry) * 0.2;
-    this.el.style.transform = `translate3d(${this.rx}px, ${this.ry}px, 0)`;
-    this.dot.style.transform = `translate3d(${this.x - this.rx}px, ${this.y - this.ry}px, 0)`;
+    if (!finePointer || !this.moved) return;
+    this.moved = false;
+    this.el.style.transform = `translate3d(${this.x}px, ${this.y}px, 0)`;
   },
 };
 if (finePointer) {
   document.body.classList.add('has-cursor');
-  addEventListener('pointermove', (e) => { cursor.x = e.clientX; cursor.y = e.clientY; cursor.el.classList.add('is-on'); }, { passive: true });
+  addEventListener('pointermove', (e) => { cursor.x = e.clientX; cursor.y = e.clientY; cursor.moved = true; cursor.el.classList.add('is-on'); }, { passive: true });
+  addEventListener('pointerdown', () => cursor.el.classList.add('is-down'));
+  addEventListener('pointerup', () => cursor.el.classList.remove('is-down'));
   document.addEventListener('pointerleave', () => cursor.el.classList.remove('is-on'));
   document.addEventListener('pointerover', (e) => {
     const hit = e.target.closest('a, button');

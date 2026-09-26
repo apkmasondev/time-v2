@@ -151,16 +151,27 @@ h1, h2, h3, p, blockquote { margin: 0; }
   0% { transform: translate(0, 0); } 20% { transform: translate(-3%, 2%); } 40% { transform: translate(2%, -4%); }
   60% { transform: translate(-4%, -2%); } 80% { transform: translate(3%, 3%); } 100% { transform: translate(0, 0); }
 }
+/* cursor: the APKMASON arrow as a watch hand. At rest it leans like a pointer, with its tip on the
+   hotspot; over anything clickable it ticks up to 12 o'clock and a hairline bezel opens around it. */
 .cursor { position: fixed; left: 0; top: 0; z-index: 200; pointer-events: none; mix-blend-mode: difference; opacity: 0; transition: opacity .4s; }
 .cursor.is-on { opacity: 1; }
-.cursor__dot { position: absolute; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%; background: #fff; }
-.cursor__ring {
-  position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  transition: width .6s var(--ease), height .6s var(--ease), margin .6s var(--ease), border-color .6s;
+.cursor__hand {
+  position: absolute; width: 17px; height: 17px; margin: -1.4px 0 0 -8.5px; /* tip (50, 8) on the hotspot */
+  fill: #fff; overflow: visible;
+  transform-origin: 50% 8%; transform: rotate(-32deg);
+  transition: transform .55s cubic-bezier(0.34, 1.7, 0.5, 1), opacity .3s;
 }
-.cursor.is-hover .cursor__ring { width: 64px; height: 64px; margin: -32px 0 0 -32px; border-color: rgba(255, 255, 255, 0.9); }
-.cursor.is-drag .cursor__ring { width: 92px; height: 92px; margin: -46px 0 0 -46px; }
+.cursor.is-hover .cursor__hand { transform: translateY(-8px) rotate(0deg) scale(1.08); } /* centred in the bezel, tip to 12 */
+.cursor.is-down .cursor__hand { transform: translateY(-7px) rotate(0deg) scale(0.82); transition-duration: .15s; }
+.cursor.is-drag .cursor__hand { opacity: 0; }
+.cursor__ring {
+  position: absolute; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  opacity: 0; transform: scale(0.35);
+  transition: transform .6s var(--ease), opacity .4s var(--ease), width .6s var(--ease), height .6s var(--ease), margin .6s var(--ease);
+}
+.cursor.is-hover .cursor__ring { opacity: 1; transform: none; }
+.cursor.is-drag .cursor__ring { opacity: 1; transform: none; width: 92px; height: 92px; margin: -46px 0 0 -46px; border-color: rgba(255, 255, 255, 0.6); }
 .cursor__label {
   position: absolute; transform: translate(-50%, -50%); white-space: nowrap;
   font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; color: #fff; opacity: 0; transition: opacity .4s;
