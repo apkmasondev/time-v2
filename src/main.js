@@ -325,13 +325,14 @@ const craft = {
     this.bitmaps.clear();
     this.drawn = -1; this.exact = false; this.pos = -1;
   },
-  // The playhead glides after the scroll (so a stop settles instead of halting on a frame) and sits
-  // between two frames most of the time: the next one is laid over the current one by the fraction.
+  // The playhead glides towards the nearest whole frame: in motion it passes between frames (the next
+  // one laid over the current one by the fraction), at rest it always lands on a single sharp frame.
   update() {
     if (!this.active) return;
-    if (this.pos < 0 || Math.abs(this.target - this.pos) > 6) this.pos = this.target; // a jump is not a glide
-    const d = this.target - this.pos;
-    this.pos = Math.abs(d) < 0.004 ? this.target : this.pos + d * (1 - Math.pow(0.8, gsap.ticker.deltaRatio(60)));
+    const goal = Math.round(this.target);
+    if (this.pos < 0 || Math.abs(goal - this.pos) > 6) this.pos = goal; // a jump is not a glide
+    const d = goal - this.pos;
+    this.pos = Math.abs(d) < 0.004 ? goal : this.pos + d * (1 - Math.pow(0.8, gsap.ticker.deltaRatio(60)));
     const p = Math.max(0, Math.min(this.count - 1, this.pos));
     const i = Math.floor(p), f = Math.round((p - i) * 24) / 24; // 1/24 steps: no redraw for sub-visible changes
     const key = i + f;
