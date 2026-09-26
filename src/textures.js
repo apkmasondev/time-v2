@@ -21,6 +21,8 @@ function tex(c, { srgb = true, repeat = false, aniso = 16 } = {}) {
   t.generateMipmaps = true;
   t.minFilter = THREE.LinearMipmapLinearFilter;
   t.needsUpdate = true;
+  // once on the GPU the canvas is dead weight (a 4K dial holds 64 MB): shrink its backing store
+  t.onUpdate = () => { t.onUpdate = null; c.width = c.height = 1; };
   return t;
 }
 

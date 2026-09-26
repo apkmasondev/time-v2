@@ -43,6 +43,7 @@ export class WatchStage {
     this.renderer.setClearColor(0x050506, 1);
     this.maxDpr = this.isMobile ? 1.5 : 1.75;
     this.dpr = Math.min(window.devicePixelRatio || 1, this.maxDpr);
+    this.dprCap = this.maxDpr; // lowered whenever a resolution proves too slow
     this.renderer.setPixelRatio(this.dpr);
 
     this.scene = new THREE.Scene();
@@ -74,7 +75,11 @@ export class WatchStage {
     this._initComposer();
     this.setEnvironment('studio');
     this.resize();
-    window.addEventListener('resize', () => this.resize());
+    window.addEventListener('resize', () => {
+      if (this._resizeQueued) return;
+      this._resizeQueued = true;
+      requestAnimationFrame(() => { this._resizeQueued = false; this.resize(); });
+    });
     window.addEventListener('pointermove', (e) => {
       this.pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
     });
@@ -420,6 +425,8 @@ export class WatchStage {
   // ------------------------------------------------------------------ frame
   resize() {
     const w = innerWidth, h = innerHeight;
+    if (w === this.w && h === this.h && this.dpr === this._dprApplied) return;
+    this._dprApplied = this.dpr;
     this.renderer.setSize(w, h, false);
     this.renderer.setPixelRatio(this.dpr);
     this.composer?.setPixelRatio(this.dpr);
@@ -530,11 +537,14 @@ export class WatchStage {
     if (this.frameTimes.length < 90) return;
     const avg = this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
     this.frameTimes.length = 0;
+    // A level that ran too slowly is never tried again, so the resolution cannot oscillate
+    // (each change reallocates the multisampled render targets: a visible hitch).
     if (avg > 1 / 40 && this.dpr > 1) {
-      this.dpr = Math.max(1, this.dpr - 0.25);
+      this.dprCap = this.dpr - 0.25;
+      this.dpr = Math.max(1, this.dprCap);
       this.resize();
-    } else if (avg < 1 / 58 && this.dpr < Math.min(devicePixelRatio, this.maxDpr)) {
-      this.dpr = Math.min(this.maxDpr, this.dpr + 0.25);
+    } else if (avg < 1 / 58 && this.dpr + 0.25 <= Math.min(devicePixelRatio, this.dprCap)) {
+      this.dpr += 0.25;
       this.resize();
     }
   }

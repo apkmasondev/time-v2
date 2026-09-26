@@ -97,6 +97,8 @@ function applyLang() {
   $$('.nav__lang span').forEach((s) => s.classList.toggle('is-active', s.dataset.lang === lang));
   $('#soundToggle').setAttribute('aria-label', t('nav.sound'));
   $('#demoClose').setAttribute('aria-label', t('demo.close'));
+  $('.nav__brand').setAttribute('aria-label', t('nav.top'));
+  $('.nav__chapters').setAttribute('aria-label', t('nav.chapters'));
   annotations.relabel();
   renderSpecs();
   labelFinaleSwatches();
@@ -572,7 +574,7 @@ function observeReveals() {
 
 // ------------------------------------------------------------------ day / night films (05)
 const wrist = {
-  day: $('#wristDayVideo'), night: $('#wristNightVideo'), active: new Set(),
+  day: $('#wristDayVideo'), night: $('#wristNightVideo'), active: new Set(), on: false,
   start(v, fromStart = false) {
     if (!v.src) v.src = film(v.dataset.src);
     if (fromStart && !this.active.has(v)) v.currentTime = 0;
@@ -602,6 +604,7 @@ const docTop = (sel) => $(sel).getBoundingClientRect().top + window.scrollY;
 const hOf = (sel) => $(sel).offsetHeight;
 const ann = (key, anchor, opts) => annotations.items[key] || annotations.add(key, anchor, opts);
 const CHAPTER_NUM = { hero: '00', form: '01', craft: '02', dial: '03', anatomy: '04', presence: '04', wrist: '05', specs: '06', studio: '07', finale: '07' };
+const CHAPTER_LINK = { presence: 'anatomy', finale: 'studio' }; // sections without a nav entry of their own
 
 function buildTimelines() {
   built.forEach((x) => { x.scrollTrigger?.kill(); x.kill?.(); });
@@ -784,17 +787,22 @@ function buildTimelines() {
   const half = vertical ? 'yPercent' : 'xPercent';
   keep(ScrollTrigger.create({
     trigger: '#wrist', start: 'top bottom', end: 'bottom top',
-    onToggle: (self) => { if (self.isActive) wrist.start(wrist.day, true); else { wrist.stop(wrist.day); wrist.stop(wrist.night); } },
+    onToggle: (self) => {
+      wrist.on = self.isActive;
+      if (self.isActive) wrist.start(wrist.day, true); else { wrist.stop(wrist.day); wrist.stop(wrist.night); }
+    },
   }));
   keep(gsap.timeline({
     scrollTrigger: st('#wrist', {
       onUpdate: (self) => {
         const p = self.progress;
+        // a jump past the section runs this after the section trigger has already stopped both films
+        if (!wrist.on) return;
         if (p > 0.36 && !wrist.active.has(wrist.night)) wrist.start(wrist.night, true);
         else if (p < 0.3 && wrist.active.has(wrist.night)) { wrist.stop(wrist.night); wrist.night.currentTime = 0; }
         // once night covers the whole screen the day film is hidden: stop decoding it
         if (p > 0.93 && wrist.active.has(wrist.day)) wrist.stop(wrist.day);
-        else if (p < 0.9 && self.isActive && !wrist.active.has(wrist.day)) wrist.start(wrist.day);
+        else if (p < 0.9 && !wrist.active.has(wrist.day)) wrist.start(wrist.day);
       },
     }),
   })
@@ -837,7 +845,8 @@ function buildTimelines() {
       trigger: '#' + id, start: 'top 55%', end: 'bottom 55%',
       onToggle: (self) => {
         if (!self.isActive) return;
-        $$('[data-chapter-link]').forEach((l) => l.classList.toggle('is-active', l.dataset.chapterLink === id));
+        const link = CHAPTER_LINK[id] || id;
+        $$('[data-chapter-link]').forEach((l) => l.classList.toggle('is-active', l.dataset.chapterLink === link));
         $('#railLabel').textContent = CHAPTER_NUM[id];
         if (introDone) sfx.tick();
       },
@@ -846,7 +855,7 @@ function buildTimelines() {
   const railFill = $('.rail__fill');
   keep(ScrollTrigger.create({ start: 0, end: 'max', onUpdate: (self) => { railFill.style.transform = `scaleY(${self.progress})`; } }));
 
-  keep(ScrollTrigger.create({ trigger: '#specList', start: 'top 85%', onEnter: () => $$('.spec-group, .spec').forEach((e, i) => setTimeout(() => e.classList.add('is-in'), i * 45)) }));
+  keep(ScrollTrigger.create({ trigger: '#specList', start: 'top 85%', once: true, onEnter: () => $$('.spec-group, .spec').forEach((e, i) => setTimeout(() => e.classList.add('is-in'), i * 45)) }));
   keep(ScrollTrigger.create({ trigger: '#blueprint', start: 'top 85%', once: true, onEnter: () => gsap.to('#blueprint [pathLength]', { strokeDashoffset: 0, duration: 2.6, stagger: 0.035, ease: 'power2.inOut' }) }));
 }
 
@@ -1042,10 +1051,12 @@ const finale = {
     const inc = this.vids[1 - this.front];
     this.fading = true;
     let settled = false;
+    const pending = new AbortController(); // listeners of this dissolve, dropped if it is abandoned
     // a stalled network or a refused play() must not lock the picker: fall back to a plain cut
     const cut = () => {
       if (settled) return;
       settled = true;
+      pending.abort();
       gsap.set(inc, { opacity: 0 });
       inc.removeAttribute('src'); inc.load();
       out.poster = this.poster(this.dial);
@@ -1074,6 +1085,7 @@ const finale = {
           out.pause();
           out.removeAttribute('src'); out.load(); // free the decoder of the hidden layer
           this.front = 1 - this.front;
+          if (!this.active) inc.pause();
           done();
         },
       });
@@ -1083,14 +1095,14 @@ const finale = {
         inc.play().then(() => {
           if (inc.requestVideoFrameCallback) inc.requestVideoFrameCallback(fade); else requestAnimationFrame(fade);
         }).catch(cut);
-      }, { once: true });
+      }, { once: true, signal: pending.signal });
       inc.currentTime = ((out.currentTime || 0) + 0.12) % (out.duration || 10);
     };
     inc.poster = this.poster(k);
     inc.preload = 'auto'; // with preload="none" the browser would not even fetch metadata
     inc.src = this.src(k);
     inc.load();
-    inc.addEventListener('loadedmetadata', start, { once: true });
+    inc.addEventListener('loadedmetadata', start, { once: true, signal: pending.signal });
   },
 };
 // the finale picker mirrors the configurator swatches
@@ -1243,7 +1255,7 @@ if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
 if (import.meta.env.DEV) {
   window.__apk = {
-    stage, S, lenis, craft, music,
+    stage, S, lenis, craft, music, gsap, ScrollTrigger,
     // debug: magnify a region of the WebGL frame into a full-screen overlay (fractions of the viewport)
     zoom(x0 = 0, y0 = 0, x1 = 1, y1 = 1) {
       document.getElementById('__zoom')?.remove();
