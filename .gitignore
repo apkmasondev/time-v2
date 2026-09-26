@@ -1,0 +1,17 @@
+# Only the files the site needs are published. Everything else in this folder
+# (source films, Blender working files, editor and tool settings) stays local.
+/*
+!/.github/
+!/public/
+!/src/
+!/index.html
+!/package.json
+!/package-lock.json
+!/vite.config.js
+!/README.md
+!/.gitignore
+
+node_modules/
+dist/
+.DS_Store
+Thumbs.db

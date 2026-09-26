@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>APKMASON Automatic</title>
+  <meta name="description" content="APKMASON Automatic: stalowa koperta 40 mm zintegrowana z bransoletą, czarna tarcza sunburst, szkło szafirowe, wodoszczelność 100 m." />
+  <meta name="theme-color" content="#060607" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="APKMASON Automatic" />
+  <meta property="og:description" content="Stalowa koperta 40 mm zintegrowana z bransoletą, czarna tarcza sunburst, szkło szafirowe, 100 m." />
+  <meta property="og:image" content="https://apkmasondev.github.io/time-v2/img/intro-poster.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="preload" href="models/apkmason.glb" as="fetch" crossorigin />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body class="is-loading">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="mark" viewBox="0 0 100 100"><path d="M50 8 L93 94 L50 70 L7 94 Z" /></symbol>
+    </defs>
+  </svg>
+
+  <div class="grain" aria-hidden="true"></div>
+  <div class="cursor" id="cursor" aria-hidden="true"><div class="cursor__ring"></div><div class="cursor__dot"></div><span class="cursor__label" data-i18n="studio.drag">Obróć</span></div>
+
+  <!-- LOADER -->
+  <div class="loader" id="loader">
+    <div class="loader__center">
+      <svg class="loader__mark" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 8 L93 94 L50 70 L7 94 Z" pathLength="1" /></svg>
+      <div class="loader__brand">APKMASON</div>
+      <div class="loader__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+      <div class="loader__meta"><span data-i18n="loader.calibrating">Przygotowanie modelu</span><span class="loader__count">000</span></div>
+      <div class="loader__enter">
+        <button class="btn btn--solid" data-enter="1"><span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span data-i18n="loader.sound">Wejdź z dźwiękiem</span></button>
+        <button class="btn btn--text" data-enter="0" data-i18n="loader.silent">Wejdź bez dźwięku</button>
+      </div>
+    </div>
+    <div class="loader__foot"><span data-i18n="loader.foot">Model 3D renderowany na żywo</span><span>© 2026</span></div>
+  </div>
+
+  <!-- WEBGL -->
+  <canvas id="gl" aria-hidden="true"></canvas>
+  <svg class="leaders" id="leaders" aria-hidden="true"></svg>
+  <div class="annotations" id="annotations" aria-hidden="true"></div>
+
+  <!-- INTRO FILM -->
+  <div class="intro" id="intro">
+    <video class="intro__video" id="introVideo" playsinline muted preload="auto" poster="img/intro-poster.jpg"></video>
+    <div class="intro__bars" aria-hidden="true"><i></i><i></i></div>
+    <p class="intro__cap intro__cap--small" data-in="0.6" data-out="3.6"><span>APKMASON</span><em data-i18n="intro.presents">przedstawia</em></p>
+    <p class="intro__cap intro__cap--big" data-in="4.4" data-out="7.6" data-i18n="intro.line">Stal. Światło. Cisza.</p>
+    <div class="intro__hud">
+      <span class="intro__tc">00:00:00:00</span>
+      <div class="intro__progress"><i></i></div>
+      <button class="btn btn--text btn--sm intro__skip" id="skipIntro" data-i18n="intro.skip">Pomiń film</button>
+    </div>
+  </div>
+
+  <!-- CHROME -->
+  <header class="nav" id="nav">
+    <a class="nav__brand" href="#hero" aria-label="APKMASON — do góry">
+      <svg class="nav__mark" aria-hidden="true"><use href="#mark" /></svg>
+      <span>APKMASON</span>
+    </a>
+    <nav class="nav__chapters" aria-label="Rozdziały">
+      <a href="#form" data-chapter-link="form"><em>01</em><span data-i18n="nav.form">Koperta</span></a>
+      <a href="#craft" data-chapter-link="craft"><em>02</em><span data-i18n="nav.craft">Bransoleta</span></a>
+      <a href="#dial" data-chapter-link="dial"><em>03</em><span data-i18n="nav.dial">Tarcza</span></a>
+      <a href="#anatomy" data-chapter-link="anatomy"><em>04</em><span data-i18n="nav.anatomy">Budowa</span></a>
+      <a href="#wrist" data-chapter-link="wrist"><em>05</em><span data-i18n="nav.wrist">Na nadgarstku</span></a>
+      <a href="#specs" data-chapter-link="specs"><em>06</em><span data-i18n="nav.specs">Specyfikacja</span></a>
+      <a href="#studio" data-chapter-link="studio"><em>07</em><span data-i18n="nav.studio">Konfigurator</span></a>
+    </nav>
+    <div class="nav__tools">
+      <button class="nav__lang" id="langToggle" aria-label="Język / Language"><span data-lang="pl">PL</span><i>/</i><span data-lang="en">EN</span></button>
+      <button class="nav__sound" id="soundToggle" aria-pressed="false" aria-label="Dźwięk"><span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span></button>
+      <button class="nav__menu" id="menuToggle" aria-expanded="false" aria-controls="menu"><span data-i18n="nav.menu">Menu</span><i aria-hidden="true"></i></button>
+    </div>
+  </header>
+
+  <div class="menu" id="menu" aria-hidden="true" inert>
+    <nav class="menu__list" aria-label="Menu">
+      <a href="#form"><em>01</em><span data-i18n="nav.form">Koperta</span></a>
+      <a href="#craft"><em>02</em><span data-i18n="nav.craft">Bransoleta</span></a>
+      <a href="#dial"><em>03</em><span data-i18n="nav.dial">Tarcza</span></a>
+      <a href="#anatomy"><em>04</em><span data-i18n="nav.anatomy">Budowa</span></a>
+      <a href="#wrist"><em>05</em><span data-i18n="nav.wrist">Na nadgarstku</span></a>
+      <a href="#specs"><em>06</em><span data-i18n="nav.specs">Specyfikacja</span></a>
+      <a href="#studio"><em>07</em><span data-i18n="nav.studio">Konfigurator</span></a>
+    </nav>
+    <div class="menu__foot">
+      <button class="btn btn--ghost" data-inquire data-i18n="nav.inquire">Zapytaj o dostępność</button>
+      <span class="cap cap--muted" data-i18n="footer.made">Stal nierdzewna · Szafir · 100 m</span>
+    </div>
+  </div>
+
+  <div class="rail" aria-hidden="true">
+    <span class="rail__label" id="railLabel">00</span>
+    <div class="rail__track"><div class="rail__fill"></div></div>
+    <span class="rail__label">07</span>
+  </div>
+
+  <!-- CONTENT -->
+  <main id="main">
+
+    <!-- HERO -->
+    <section class="hero" id="hero" data-chapter="hero">
+      <div class="hero__left">
+        <p class="eyebrow reveal-up"><span class="dash"></span><span data-i18n="hero.eyebrow">Automatic · 40 mm</span></p>
+        <h1 class="display" data-split><span data-i18n="hero.t1">Czas,</span><br /><em data-i18n="hero.t2">wyrzeźbiony</em><br /><span data-i18n="hero.t3">w stali.</span></h1>
+        <p class="lede reveal-up" data-i18n="hero.lede">Stalowa koperta 40 mm zintegrowana z bransoletą, czarna tarcza sunburst i szkło szafirowe. Wodoszczelność 100 m.</p>
+        <div class="hero__cta reveal-up">
+          <a class="btn btn--solid" href="#studio" data-i18n="hero.cta">Konfigurator</a>
+          <a class="btn btn--text" href="#specs" data-i18n="hero.cta2">Specyfikacja</a>
+        </div>
+      </div>
+      <div class="hero__right reveal-up">
+        <div class="hero__time">
+          <span data-i18n="hero.time">Twój czas</span>
+          <b class="liveTime">--:--:--</b>
+        </div>
+        <p class="hero__note" data-i18n="hero.note">Wskazówki modelu 3D pokazują aktualną godzinę.</p>
+      </div>
+      <div class="scrollcue" aria-hidden="true"><span data-i18n="hero.scroll">Przewiń</span><i></i></div>
+    </section>
+
+    <!-- 01 CASE -->
+    <section class="chapter form" id="form" data-chapter="form">
+      <div class="sticky">
+        <div class="chapter__head">
+          <p class="eyebrow"><span class="num">01</span><span class="dash"></span><span data-i18n="form.eyebrow">Koperta</span></p>
+          <h2 class="display display--m" data-split data-i18n="form.title">Koperta i bransoleta prowadzone jedną linią.</h2>
+        </div>
+        <ol class="steps" id="formSteps">
+          <li class="step" data-step="0"><span class="step__n">i.</span><h3 data-i18n="form.s1t">Luneta polerowana na lustro</h3><p data-i18n="form.s1p"></p></li>
+          <li class="step" data-step="1"><span class="step__n">ii.</span><h3 data-i18n="form.s2t">Koperta szczotkowana</h3><p data-i18n="form.s2p"></p></li>
+          <li class="step" data-step="2"><span class="step__n">iii.</span><h3 data-i18n="form.s3t">Koronka zakręcana</h3><p data-i18n="form.s3p"></p></li>
+        </ol>
+        <div class="chapter__counter" aria-live="off">
+          <span class="big-num" id="formNum">40</span><span class="unit">mm</span>
+          <span class="cap" id="formCap" data-i18n="form.c1">średnica koperty</span>
+        </div>
+        <div class="steps__ticks" aria-hidden="true"><i></i><i></i><i></i></div>
+      </div>
+    </section>
+
+    <!-- 02 BRACELET (scroll-scrubbed macro film) -->
+    <section class="chapter craft" id="craft" data-chapter="craft">
+      <div class="sticky">
+        <div class="craft__stage" id="craftStage">
+          <canvas class="craft__canvas" id="craftCanvas"></canvas>
+          <div class="craft__shade"></div>
+        </div>
+        <div class="craft__lines">
+          <div class="craft__line" data-range="0.06,0.36">
+            <p class="eyebrow"><span class="num">02</span><span class="dash"></span><span data-i18n="craft.eyebrow">Bransoleta</span></p>
+            <p class="display display--m" data-i18n="craft.l1t">Szczotkowane ogniwa.</p>
+            <p class="body" data-i18n="craft.l1"></p>
+          </div>
+          <div class="craft__line" data-range="0.36,0.66">
+            <p class="eyebrow"><span class="num">02</span><span class="dash"></span><span data-i18n="craft.eyebrow">Bransoleta</span></p>
+            <p class="display display--m" data-i18n="craft.l2t">Polerowane łączniki.</p>
+            <p class="body" data-i18n="craft.l2"></p>
+          </div>
+          <div class="craft__line" data-range="0.66,0.96">
+            <p class="eyebrow"><span class="num">02</span><span class="dash"></span><span data-i18n="craft.eyebrow">Bransoleta</span></p>
+            <p class="display display--m" data-i18n="craft.l3t">Od 25 do 18 mm.</p>
+            <p class="body" data-i18n="craft.l3"></p>
+          </div>
+        </div>
+        <div class="craft__hud"><span data-i18n="craft.hud">Makro · bransoleta</span><span id="craftFr">FR 001 / 100</span></div>
+      </div>
+    </section>
+
+    <!-- 03 DIAL -->
+    <section class="chapter dial" id="dial" data-chapter="dial">
+      <div class="sticky">
+        <div class="dial__text">
+          <p class="eyebrow"><span class="num">03</span><span class="dash"></span><span data-i18n="dial.eyebrow">Tarcza</span></p>
+          <h2 class="display display--m" data-split data-i18n="dial.title">Sunburst, który porusza się razem ze światłem.</h2>
+          <p class="body" data-i18n="dial.body"></p>
+          <div class="dial__clock">
+            <span class="cap" data-i18n="dial.clockcap">Wskazówki pokazują Twój czas</span>
+            <b class="liveTime liveTime--big">--:--:--</b>
+            <span class="cap cap--muted" data-i18n="dial.note">Data na godzinie 3 · płynny sekundnik</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 ANATOMY -->
+    <section class="chapter anatomy" id="anatomy" data-chapter="anatomy">
+      <div class="sticky">
+        <div class="chapter__head chapter__head--center">
+          <p class="eyebrow"><span class="num">04</span><span class="dash"></span><span data-i18n="anatomy.eyebrow">Budowa</span></p>
+          <h2 class="display display--m" data-split data-i18n="anatomy.title">Osiem elementów. Jedna całość.</h2>
+          <p class="body" data-i18n="anatomy.body"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- INTERLUDE (film) -->
+    <section class="presence" id="presence" data-chapter="presence">
+      <div class="sticky">
+        <div class="presence__stage" id="presenceStage">
+          <video class="presence__video" id="presenceVideo" playsinline muted loop preload="none" poster="img/presence-poster.jpg"></video>
+          <div class="presence__shade"></div>
+        </div>
+        <blockquote class="presence__quote">
+          <p class="display display--l" data-split><span data-i18n="presence.q1">Nie krzyczy.</span><br /><em data-i18n="presence.q2">Zostaje zapamiętany.</em></p>
+        </blockquote>
+      </div>
+    </section>
+
+    <!-- 05 ON THE WRIST (day / night) -->
+    <section class="chapter wrist" id="wrist" data-chapter="wrist">
+      <div class="sticky">
+        <div class="wrist__panel wrist__panel--day" id="wristDay">
+          <video class="wrist__video" id="wristDayVideo" playsinline muted preload="none" poster="img/wrist-day-poster.jpg" data-src="wrist-day" data-loop="5.5"></video>
+          <div class="wrist__shade"></div>
+          <p class="wrist__tag"><span class="wrist__tagname" data-i18n="wrist.day">Dzień</span><span class="cap" data-i18n="wrist.dayCap">Beton, szkło, światło dnia</span></p>
+        </div>
+        <div class="wrist__panel wrist__panel--night" id="wristNight">
+          <video class="wrist__video" id="wristNightVideo" playsinline muted preload="none" poster="img/wrist-night-poster.jpg" data-src="wrist-night" data-loop="5.0833"></video>
+          <div class="wrist__shade"></div>
+          <p class="wrist__tag"><span class="wrist__tagname" data-i18n="wrist.night">Noc</span><span class="cap" data-i18n="wrist.nightCap">Wieczór nad miastem</span></p>
+        </div>
+        <div class="wrist__head">
+          <p class="eyebrow"><span class="num">05</span><span class="dash"></span><span data-i18n="wrist.eyebrow">Na nadgarstku</span></p>
+          <h2 class="display display--m" data-split><span data-i18n="wrist.t1">Od rana</span><br /><em data-i18n="wrist.t2">do nocy.</em></h2>
+          <p class="body" data-i18n="wrist.body"></p>
+        </div>
+        <dl class="wrist__facts">
+          <div><dt class="big-num">9,7<small>mm</small></dt><dd class="cap" data-i18n="wrist.f1">grubość koperty</dd></div>
+          <div><dt class="big-num">43,4<small>mm</small></dt><dd class="cap" data-i18n="wrist.f2">od ucha do ucha</dd></div>
+          <div><dt class="big-num">100<small>m</small></dt><dd class="cap" data-i18n="wrist.f3">wodoszczelność</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- 06 SPECS -->
+    <section class="specs" id="specs" data-chapter="specs">
+      <div class="specs__grid">
+        <div class="specs__intro">
+          <p class="eyebrow"><span class="num">06</span><span class="dash"></span><span data-i18n="specs.eyebrow">Specyfikacja</span></p>
+          <h2 class="display display--m" data-split data-i18n="specs.title">Liczby, które się czuje.</h2>
+          <figure class="blueprint" id="blueprint" aria-hidden="true"></figure>
+          <p class="cap cap--muted" data-i18n="specs.ref">Rzut z przodu · skala 1:1</p>
+        </div>
+        <dl class="specs__list" id="specList"></dl>
+      </div>
+    </section>
+
+    <!-- 07 CONFIGURATOR -->
+    <section class="studio" id="studio" data-chapter="studio">
+      <div class="studio__drag" id="studioDrag" data-cursor="drag"></div>
+      <div class="studio__panel">
+        <p class="eyebrow"><span class="num">07</span><span class="dash"></span><span data-i18n="studio.eyebrow">Konfigurator</span></p>
+        <h2 class="display display--m" data-i18n="studio.title">Twoja konfiguracja.</h2>
+        <div class="studio__group">
+          <span class="cap" data-i18n="studio.dial">Tarcza</span>
+          <div class="swatches" id="swatches" role="radiogroup">
+            <button class="swatch is-active" role="radio" aria-checked="true" data-dial="obsidian" style="--c:#16171a"><i></i><span data-i18n="dial.black">Czarna</span></button>
+            <button class="swatch" role="radio" aria-checked="false" data-dial="glacier" style="--c:#a6cad8"><i></i><span data-i18n="dial.ice">Lodowa</span></button>
+            <button class="swatch" role="radio" aria-checked="false" data-dial="abyss" style="--c:#223f7e"><i></i><span data-i18n="dial.navy">Granatowa</span></button>
+            <button class="swatch" role="radio" aria-checked="false" data-dial="verde" style="--c:#1e5c31"><i></i><span data-i18n="dial.green">Zielona</span></button>
+            <button class="swatch" role="radio" aria-checked="false" data-dial="solar" style="--c:#dcaa22"><i></i><span data-i18n="dial.yellow">Żółta</span></button>
+          </div>
+        </div>
+        <div class="studio__group">
+          <span class="cap" data-i18n="studio.light">Światło</span>
+          <div class="segmented" id="lights" role="radiogroup">
+            <button class="is-active" role="radio" aria-checked="true" data-light="studio" data-i18n="studio.l1">Studio</button>
+            <button role="radio" aria-checked="false" data-light="noir" data-i18n="studio.l2">Noc</button>
+            <button role="radio" aria-checked="false" data-light="aurum" data-i18n="studio.l3">Złota godzina</button>
+          </div>
+        </div>
+        <div class="studio__group studio__group--row">
+          <button class="btn btn--ghost btn--sm" id="flipBtn" data-i18n="studio.flip">Pokaż dekiel</button>
+          <button class="btn btn--text btn--sm" id="resetBtn" data-i18n="studio.reset">Wyśrodkuj</button>
+        </div>
+      </div>
+      <p class="studio__name" id="studioName" aria-hidden="true">Czarna</p>
+      <p class="studio__hint" aria-hidden="true"><span class="studio__hint-icon"></span><span data-i18n="studio.hint">Przeciągnij, aby obrócić</span></p>
+    </section>
+
+    <!-- CLOSING -->
+    <section class="finale" id="finale" data-chapter="finale">
+      <div class="finale__stage">
+        <!-- two layers: a new dial variant fades in over the current one at the same moment of the shot -->
+        <video class="finale__video" id="finaleA" playsinline muted loop preload="none" poster="img/finale-obsidian-poster.jpg"></video>
+        <video class="finale__video" id="finaleB" playsinline muted loop preload="none"></video>
+        <div class="finale__shade"></div>
+      </div>
+      <div class="finale__inner">
+        <p class="eyebrow"><span class="dash"></span><span data-i18n="finale.eyebrow">APKMASON Automatic</span></p>
+        <h2 class="display display--l" data-split><span data-i18n="finale.t1">Czas, który</span><br /><em data-i18n="finale.t2">zostaje.</em></h2>
+        <p class="lede" data-i18n="finale.lede"></p>
+        <div class="finale__dials">
+          <span class="cap" data-i18n="finale.dial">Tarcza w filmie</span>
+          <div class="finale__swatches" id="finaleSwatches" role="radiogroup"></div>
+        </div>
+        <div class="finale__cta">
+          <button class="btn btn--solid" data-inquire data-i18n="finale.cta">Zapytaj o dostępność</button>
+          <a class="btn btn--text" href="#studio" data-i18n="finale.cta2">Wróć do konfiguratora</a>
+        </div>
+      </div>
+      <footer class="footer">
+        <span>© 2026 APKMASON</span>
+        <span data-i18n="footer.made">Stal nierdzewna · Szafir · 100 m</span>
+        <a href="#hero" data-i18n="footer.top">Do góry ↑</a>
+      </footer>
+    </section>
+  </main>
+
+  <!-- ENQUIRY -->
+  <dialog class="inquiry" id="inquiry" aria-labelledby="inqTitle">
+    <form class="inquiry__form" id="inquiryForm" novalidate>
+      <button class="inquiry__close" type="button" id="inquiryClose" aria-label="Zamknij"><i></i><i></i></button>
+      <p class="eyebrow"><span class="dash"></span><span data-i18n="inq.eyebrow">Zapytanie</span></p>
+      <h2 class="display display--m" id="inqTitle" data-i18n="inq.title">Zapytaj o dostępność.</h2>
+      <p class="body" data-i18n="inq.lede"></p>
+      <div class="inquiry__config">
+        <span class="cap" data-i18n="inq.config">Konfiguracja</span>
+        <span class="inquiry__summary" id="inqSummary"></span>
+      </div>
+      <fieldset class="field field--choice">
+        <legend data-i18n="inq.movement">Mechanizm</legend>
+        <div class="segmented">
+          <label><input type="radio" name="movement" value="auto" checked /><span data-i18n="inq.auto">Automatyczny</span></label>
+          <label><input type="radio" name="movement" value="quartz" /><span data-i18n="inq.quartz">Kwarcowy</span></label>
+        </div>
+      </fieldset>
+      <label class="field"><span data-i18n="inq.name">Imię i nazwisko</span><input name="name" autocomplete="name" required /><em class="field__err" data-i18n="inq.err.name"></em></label>
+      <label class="field"><span data-i18n="inq.email">E-mail</span><input name="email" type="email" autocomplete="email" required /><em class="field__err" data-i18n="inq.err.email"></em></label>
+      <label class="field"><span data-i18n="inq.msg">Wiadomość (opcjonalnie)</span><textarea name="msg" rows="3"></textarea></label>
+      <button class="btn btn--solid" type="submit" data-i18n="inq.send">Przygotuj wiadomość</button>
+      <p class="inquiry__note" data-i18n="inq.note"></p>
+    </form>
+  </dialog>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
