@@ -11,8 +11,9 @@ Strona demonstracyjna pokazująca, jak może wyglądać premium prezentacja prod
 - **„Na nadgarstku”:** dwa filmy, dzień i noc, łączone w dyptyk.
 - **Konfigurator:** pięć tarcz, trzy oświetlenia studyjne, podgląd dekla, obrót przeciąganiem.
 - **Finał w kolorze wybranej tarczy:** film przenika się do wybranego wariantu w tym samym momencie ujęcia.
-- **Specyfikacja** z rysunkiem technicznym i formularz zapytania (otwiera program pocztowy).
-- **Wersje PL / EN**, pełna obsługa telefonów, opcjonalny dźwięk, respektowanie ustawienia „ogranicz ruch”.
+- **Specyfikacja** w formie karty danych manufaktury, z rysunkiem technicznym.
+- **Ścieżka dźwiękowa** (opcjonalna): muzyka intro zsynchronizowana z filmem i osobny utwór do przerywnika, pobierany tylko po włączeniu dźwięku.
+- **Wersje PL / EN**, pełna obsługa telefonów, respektowanie ustawienia „ogranicz ruch”.
 
 ## Uruchomienie lokalne
 
@@ -32,14 +33,14 @@ Każdy push na gałąź `main` buduje stronę i publikuje ją na GitHub Pages (`
 | Ścieżka | Zawartość |
 |---|---|
 | `index.html` | Treść i struktura strony. |
-| `src/main.js` | Loader, intro, choreografia scrolla, konfigurator, filmy, menu, formularz. |
+| `src/main.js` | Loader, intro, choreografia scrolla, konfigurator, filmy, muzyka, menu. |
 | `src/scene.js` | Scena 3D: materiały, postument z odbiciem, widok rozstrzelony, wskazówki. |
 | `src/textures.js` | Proceduralne tekstury: nadruk tarczy, sunburst, szczotkowana stal, grawer. |
 | `src/env.js` | Wirtualne studio fotograficzne: Studio, Noc, Złota godzina. |
 | `src/i18n.js` | Teksty PL / EN i specyfikacja. |
-| `src/config.js` | Adres e-mail dla zapytań (domyślnie pusty). |
 | `public/models/` | Model zegarka (glTF, kompresja meshopt). |
 | `public/video/`, `public/img/` | Filmy w wersjach 1080p i 720p oraz ich plakaty. |
+| `public/audio/` | Muzyka przerywnika. |
 | `public/seq/` | Klatki makro bransolety przewijane scrollem. |
 
 ## Technologie

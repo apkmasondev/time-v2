@@ -5,7 +5,6 @@ import { WatchStage } from './scene.js';
 import { DICT } from './i18n.js';
 import { buildBlueprint } from './blueprint.js';
 import { grainDataURL } from './textures.js';
-import { CONTACT_EMAIL } from './config.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -97,7 +96,7 @@ function applyLang() {
   for (const el of $$('[data-split]')) split(el);
   $$('.nav__lang span').forEach((s) => s.classList.toggle('is-active', s.dataset.lang === lang));
   $('#soundToggle').setAttribute('aria-label', t('nav.sound'));
-  $('#inquiryClose').setAttribute('aria-label', t('inq.close'));
+  $('#inquiryClose').setAttribute('aria-label', t('demo.close'));
   annotations?.relabel();
   renderSpecs();
   labelFinaleSwatches();
@@ -268,8 +267,8 @@ const P = {
   dial1: () => ({ dist: fit(3.4, small.matches ? 0.72 : 1.0), shiftX: small.matches ? 0 : -0.25, rotX: -0.14, rotY: 0.06, rotZ: -0.08 }),
   anat0: () => ({ dist: fit(9.5, small.matches ? 0.5 : 0.9), shiftX: 0, shiftY: small.matches ? 0.02 : -0.05, rotX: -1.12, rotY: 0, rotZ: 0.45, column: 0.4, columnX: 0, panel: 0, columnW: 0.5 }),
   studio: () => small.matches
-    ? { dist: fit(7.6, 0.42), shiftX: 0, shiftY: 0.18, rotX: 0.05, rotY: -0.3, rotZ: 0, column: 0.8, columnX: 0, panel: 0, pedestal: 0, explode: 0, bracelet: 1, columnW: 0.3 }
-    : { dist: fit(7.6, 0.8), shiftX: 0.12, shiftY: 0, rotX: 0.05, rotY: -0.3, rotZ: 0, column: 1, columnX: 0.24, panel: 0, pedestal: 0, explode: 0, bracelet: 1, columnW: 0.3 },
+    ? { dist: fit(7.6, 0.42), shiftX: 0, shiftY: 0.18, rotX: 0.05, rotY: -0.3, rotZ: 0, column: 0.8, columnX: 0, panel: 0, pedestal: 0, explode: 0, bracelet: 1, columnW: 0.3, pivot: 1 }
+    : { dist: fit(7.6, 0.8), shiftX: 0.12, shiftY: 0, rotX: 0.05, rotY: -0.3, rotZ: 0, column: 1, columnX: 0.24, panel: 0, pedestal: 0, explode: 0, bracelet: 1, columnW: 0.3, pivot: 1 },
 };
 
 // ------------------------------------------------------------------ bracelet macro sequence
@@ -709,7 +708,6 @@ function buildTimelines() {
       onToggle: (self) => {
         if (self.isActive) {
           if (!pv.src) pv.src = `video/presence-${vq}.mp4`;
-          pv.muted = !soundOn;
           pv.play().catch(() => {});
         } else pv.pause();
       },
@@ -721,6 +719,11 @@ function buildTimelines() {
     .fromTo('.presence__quote', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.15 }, 0.5)
     .to('.presence__quote', { opacity: 0, y: -30, duration: 0.1 }, 0.9));
   keep(ScrollTrigger.create({ trigger: '#presence', start: 'top top', onEnter: () => $('.presence__quote [data-split]').classList.add('is-in') }));
+  // the interlude track plays from the moment the iris opens until the wrist films end
+  keep(ScrollTrigger.create({
+    trigger: '#presence', start: 'top 30%', endTrigger: '#wrist', end: 'bottom top',
+    onEnter: () => music.play(), onEnterBack: () => music.play(), onLeave: () => music.stop(), onLeaveBack: () => music.stop(),
+  }));
 
   // V. on the wrist: a framed day film opens to full bleed, night wipes in beside it, then takes over
   const vertical = small.matches;
@@ -787,7 +790,7 @@ function buildTimelines() {
   const railFill = $('.rail__fill');
   keep(ScrollTrigger.create({ start: 0, end: 'max', onUpdate: (self) => { railFill.style.transform = `scaleY(${self.progress})`; } }));
 
-  keep(ScrollTrigger.create({ trigger: '#specList', start: 'top 85%', onEnter: () => $$('.spec').forEach((e, i) => setTimeout(() => e.classList.add('is-in'), i * 70)) }));
+  keep(ScrollTrigger.create({ trigger: '#specList', start: 'top 85%', onEnter: () => $$('.spec-group, .spec').forEach((e, i) => setTimeout(() => e.classList.add('is-in'), i * 45)) }));
   keep(ScrollTrigger.create({ trigger: '#blueprint', start: 'top 85%', once: true, onEnter: () => gsap.to('#blueprint [pathLength]', { strokeDashoffset: 0, duration: 2.6, stagger: 0.035, ease: 'power2.inOut' }) }));
 }
 
@@ -797,7 +800,7 @@ function resetStudio() {
     setActive('#lights button', (b) => b.dataset.light === 'studio');
   }
   gsap.to(S, { lume: 0, userRotX: 0, userRotY: 0, duration: 0.6 });
-  if (flipped) gsap.to(S, { bracelet: 1, envRot: S.envRot - Math.PI, duration: 0.6 });
+  if (flipped) gsap.to(S, { bracelet: 1, envRot: S.envRot - Math.PI, pivot: 1, duration: 0.6 });
   flipped = false;
   $('#flipBtn').textContent = t('studio.flip');
 }
@@ -817,9 +820,13 @@ addEventListener('resize', () => {
 // ------------------------------------------------------------------ specs
 function renderSpecs() {
   const list = $('#specList');
-  const inState = [...list.children].map((c) => c.classList.contains('is-in'));
-  list.innerHTML = DICT[lang].specs.map(([k, v, n]) => `<div class="spec"><dt>${k}</dt><dd>${v}<small>${n}</small></dd></div>`).join('');
-  [...list.children].forEach((c, i) => inState[i] && c.classList.add('is-in'));
+  const shown = list.querySelector('.is-in') !== null;
+  list.innerHTML = DICT[lang].specs.map(([group, rows], g) => `
+    <section class="spec-group">
+      <h3 class="spec-group__title"><span class="num">${String(g + 1).padStart(2, '0')}</span>${group}</h3>
+      <dl>${rows.map(([k, v]) => `<div class="spec"><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+    </section>`).join('');
+  if (shown) $$('.spec-group, .spec', list).forEach((e) => e.classList.add('is-in'));
 }
 $('#blueprint').innerHTML = buildBlueprint();
 
@@ -888,13 +895,14 @@ function setActive(sel, pred) {
     gsap.to(S, { bracelet: flipped ? 0 : 1, duration: 0.9, delay: flipped ? 0 : 0.8, ease: 'power2.inOut' });
     // turn the studio lights with the watch, so the caseback is lit like the dial instead of by the back lights
     gsap.to(S, { envRot: S.envRot + (flipped ? Math.PI : -Math.PI), duration: 1.8, ease: 'power3.inOut' });
+    gsap.to(S, { pivot: flipped ? 0 : 1, duration: 1.8, ease: 'power3.inOut' });
     $('#flipBtn').textContent = t(flipped ? 'studio.flipBack' : 'studio.flip');
   });
   $('#resetBtn').addEventListener('click', () => {
     sfx.click();
     if (flipped) {
       gsap.to(S, { bracelet: 1, duration: 0.9, delay: 0.7 });
-      gsap.to(S, { envRot: S.envRot - Math.PI, duration: 1.6, ease: 'power3.inOut' });
+      gsap.to(S, { envRot: S.envRot - Math.PI, pivot: 1, duration: 1.6, ease: 'power3.inOut' });
     }
     flipped = false;
     gsap.to(S, { userRotY: 0, userRotX: 0, duration: 1.6, ease: 'power3.inOut' });
@@ -1040,44 +1048,47 @@ function setMenu(open) {
 menuBtn.addEventListener('click', () => { sfx.click(); setMenu(!document.body.classList.contains('is-menu')); });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('is-menu')) setMenu(false); });
 
-// ------------------------------------------------------------------ enquiry
+// ------------------------------------------------------------------ demo notice ("ask about availability")
 const inquiry = $('#inquiry');
-const inqForm = $('#inquiryForm');
 function openInquiry() {
   sfx.click();
   if (document.body.classList.contains('is-menu')) setMenu(false);
   const dial = $('#swatches .is-active span').textContent;
   const light = t('light.' + (stage.envName || 'studio'));
   $('#inqSummary').textContent = `${dial} · ${light}`;
+  const title = $('#inqTitle');
+  title.classList.remove('is-in');
   inquiry.showModal();
+  requestAnimationFrame(() => requestAnimationFrame(() => title.classList.add('is-in')));
   lenis.stop();
 }
 $$('[data-inquire]').forEach((b) => b.addEventListener('click', openInquiry));
 $('#inquiryClose').addEventListener('click', () => inquiry.close());
+$$('#inquiry [data-close]').forEach((b) => b.addEventListener('click', () => inquiry.close()));
 inquiry.addEventListener('click', (e) => { if (e.target === inquiry) inquiry.close(); });
 inquiry.addEventListener('close', () => { if (introDone) lenis.start(); });
-inqForm.addEventListener('input', (e) => e.target.closest('.field')?.classList.remove('is-invalid'));
-inqForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const f = new FormData(inqForm);
-  const name = String(f.get('name') || '').trim();
-  const email = String(f.get('email') || '').trim();
-  const bad = [];
-  if (!name) bad.push(inqForm.elements.name);
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) bad.push(inqForm.elements.email);
-  for (const el of bad) el.closest('.field').classList.add('is-invalid');
-  if (bad.length) { bad[0].focus(); return; }
-  const body = [
-    `${t('inq.name')}: ${name}`,
-    `${t('inq.email')}: ${email}`,
-    `${t('inq.config')}: APKMASON Automatic · ${$('#inqSummary').textContent}`,
-    `${t('inq.movement')}: ${t(f.get('movement') === 'quartz' ? 'inq.quartz' : 'inq.auto')}`,
-    '',
-    String(f.get('msg') || '').trim(),
-  ].join('\n');
-  location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(t('inq.subject'))}&body=${encodeURIComponent(body)}`;
-  inquiry.close();
-});
+
+// ------------------------------------------------------------------ interlude music
+// A separate file (not muxed into the looping marble film): it plays once through with fades,
+// and it is only downloaded by visitors who turned the sound on.
+const music = {
+  el: new Audio(), wanted: false,
+  play() {
+    this.wanted = true;
+    if (!soundOn) return;
+    const a = this.el;
+    if (!a.getAttribute('src')) { a.src = 'audio/interlude.m4a'; a.preload = 'auto'; }
+    if (a.paused) { a.currentTime = 0; a.volume = 0; a.play().catch(() => {}); }
+    gsap.to(a, { volume: 0.85, duration: 1.4, ease: 'power1.out', overwrite: true });
+  },
+  stop(immediate = false) {
+    this.wanted = false;
+    const a = this.el;
+    if (a.paused) return;
+    if (immediate) { gsap.killTweensOf(a); a.pause(); return; }
+    gsap.to(a, { volume: 0, duration: 1.4, ease: 'power1.in', overwrite: true, onComplete: () => a.pause() });
+  },
+};
 
 // ------------------------------------------------------------------ chrome
 function setSound(on) {
@@ -1085,8 +1096,9 @@ function setSound(on) {
   sfx.enable(on);
   document.body.classList.toggle('is-sound', on);
   $('#soundToggle').setAttribute('aria-pressed', String(on));
-  // only the intro and marble films carry audio
+  // only the intro film carries audio; the interlude track is a separate element
   for (const v of $$('video')) v.muted = !on;
+  if (!on && !music.el.paused) { const w = music.wanted; music.stop(true); music.wanted = w; } else if (on && music.wanted) music.play();
 }
 $('#langToggle').addEventListener('click', () => {
   lang = lang === 'pl' ? 'en' : 'pl';
@@ -1117,7 +1129,7 @@ if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
 if (import.meta.env.DEV) {
   window.__apk = {
-    stage, S, lenis, craft,
+    stage, S, lenis, craft, music,
     // debug: magnify a region of the WebGL frame into a full-screen overlay (fractions of the viewport)
     zoom(x0 = 0, y0 = 0, x1 = 1, y1 = 1) {
       document.getElementById('__zoom')?.remove();

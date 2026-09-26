@@ -52,8 +52,10 @@
   <div class="intro" id="intro">
     <video class="intro__video" id="introVideo" playsinline muted preload="auto" poster="img/intro-poster.jpg"></video>
     <div class="intro__bars" aria-hidden="true"><i></i><i></i></div>
-    <p class="intro__cap intro__cap--small" data-in="0.6" data-out="3.6"><span>APKMASON</span><em data-i18n="intro.presents">przedstawia</em></p>
-    <p class="intro__cap intro__cap--big" data-in="4.4" data-out="7.6" data-i18n="intro.line">Stal. Światło. Cisza.</p>
+    <p class="intro__cap intro__cap--small" data-in="0.6" data-out="3.6"><span class="steel">APKMASON</span><em data-i18n="intro.presents">przedstawia</em></p>
+    <div class="intro__cap intro__scrim intro__scrim--small" data-in="0.6" data-out="3.6" aria-hidden="true"></div>
+    <div class="intro__cap intro__scrim" data-in="4.2" data-out="7.8" aria-hidden="true"></div>
+    <p class="intro__cap intro__cap--big" data-in="4.4" data-out="7.6"><span class="steel" data-i18n="intro.line">Stal. Światło. Cisza.</span></p>
     <div class="intro__hud">
       <span class="intro__tc">00:00:00:00</span>
       <div class="intro__progress"><i></i></div>
@@ -252,7 +254,7 @@
           <figure class="blueprint" id="blueprint" aria-hidden="true"></figure>
           <p class="cap cap--muted" data-i18n="specs.ref">Rzut z przodu · skala 1:1</p>
         </div>
-        <dl class="specs__list" id="specList"></dl>
+        <div class="specs__table" id="specList"></div>
       </div>
     </section>
 
@@ -318,30 +320,23 @@
     </section>
   </main>
 
-  <!-- ENQUIRY -->
-  <dialog class="inquiry" id="inquiry" aria-labelledby="inqTitle">
-    <form class="inquiry__form" id="inquiryForm" novalidate>
+  <!-- DEMO NOTICE: behind "ask about availability" — this is a showcase, not a shop -->
+  <dialog class="inquiry demo" id="inquiry" aria-labelledby="inqTitle">
+    <div class="demo__body">
       <button class="inquiry__close" type="button" id="inquiryClose" aria-label="Zamknij"><i></i><i></i></button>
-      <p class="eyebrow"><span class="dash"></span><span data-i18n="inq.eyebrow">Zapytanie</span></p>
-      <h2 class="display display--m" id="inqTitle" data-i18n="inq.title">Zapytaj o dostępność.</h2>
-      <p class="body" data-i18n="inq.lede"></p>
-      <div class="inquiry__config">
-        <span class="cap" data-i18n="inq.config">Konfiguracja</span>
-        <span class="inquiry__summary" id="inqSummary"></span>
+      <svg class="demo__mark" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 8 L93 94 L50 70 L7 94 Z" pathLength="1" /></svg>
+      <p class="eyebrow"><span class="dash"></span><span data-i18n="demo.eyebrow">Projekt demonstracyjny</span></p>
+      <h2 class="display display--m" id="inqTitle" data-split><span data-i18n="demo.t1">Ten zegarek</span><br /><em data-i18n="demo.t2">nie jest na sprzedaż.</em></h2>
+      <p class="body" data-i18n="demo.body"></p>
+      <dl class="demo__meta">
+        <div><dt class="cap" data-i18n="demo.config">Twoja konfiguracja</dt><dd class="inquiry__summary" id="inqSummary"></dd></div>
+        <div><dt class="cap" data-i18n="demo.author">Projekt i realizacja</dt><dd><a class="demo__brand" href="https://apkmason.dev" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#mark" /></svg>APKMASON</a></dd></div>
+      </dl>
+      <div class="demo__cta">
+        <a class="btn btn--solid" href="https://apkmason.dev" target="_blank" rel="noopener"><span data-i18n="demo.visit">Odwiedź apkmason.dev</span><span aria-hidden="true">↗</span></a>
+        <button class="btn btn--text" type="button" data-close data-i18n="demo.back">Wróć do strony</button>
       </div>
-      <fieldset class="field field--choice">
-        <legend data-i18n="inq.movement">Mechanizm</legend>
-        <div class="segmented">
-          <label><input type="radio" name="movement" value="auto" checked /><span data-i18n="inq.auto">Automatyczny</span></label>
-          <label><input type="radio" name="movement" value="quartz" /><span data-i18n="inq.quartz">Kwarcowy</span></label>
-        </div>
-      </fieldset>
-      <label class="field"><span data-i18n="inq.name">Imię i nazwisko</span><input name="name" autocomplete="name" required /><em class="field__err" data-i18n="inq.err.name"></em></label>
-      <label class="field"><span data-i18n="inq.email">E-mail</span><input name="email" type="email" autocomplete="email" required /><em class="field__err" data-i18n="inq.err.email"></em></label>
-      <label class="field"><span data-i18n="inq.msg">Wiadomość (opcjonalnie)</span><textarea name="msg" rows="3"></textarea></label>
-      <button class="btn btn--solid" type="submit" data-i18n="inq.send">Przygotuj wiadomość</button>
-      <p class="inquiry__note" data-i18n="inq.note"></p>
-    </form>
+    </div>
   </dialog>
 
   <script type="module" src="/src/main.js"></script>

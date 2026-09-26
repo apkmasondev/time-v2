@@ -59,7 +59,7 @@ export class WatchStage {
       explode: 0, bracelet: 1, pedestal: 1,
       column: 1, columnX: 0, columnW: 0.3, panel: 1, bgLift: 0,
       envRot: 0, envIntensity: 1, exposure: 1,
-      lume: 0, timeWarp: 0, float: 1, parallax: 1,
+      lume: 0, timeWarp: 0, float: 1, parallax: 1, pivot: 0,
       userRotX: 0, userRotY: 0,
     };
     this.pointer = new THREE.Vector2();
@@ -255,9 +255,15 @@ export class WatchStage {
       this.parts[o.name] = pivot;
     }
 
+    // rotation pivot: 0 = dial axis (choreography), 1 = centre of the whole watch with its bracelet
+    // loop (configurator), so dragging turns the watch in place instead of swinging it round the dial
     this.watch = new THREE.Group();
-    this.watch.add(this.model);
+    this.spin = new THREE.Group();
+    this.spin.add(this.model);
+    this.watch.add(this.spin);
     this.scene.add(this.watch);
+    this.model.updateMatrixWorld(true);
+    this.center = new THREE.Box3().setFromObject(this.model).getCenter(new THREE.Vector3());
 
     // annotation anchors (Blender coordinates, mm)
     const A = {
@@ -407,7 +413,9 @@ export class WatchStage {
 
     if (this.watch) {
       this.watch.rotation.set(S.rotX - py + S.userRotX + fl * 0.4, S.rotY + px + S.userRotY, S.rotZ, 'YXZ');
-      this.watch.position.set(S.posX, S.posY + fl * 0.35, S.posZ);
+      const c = this.center, k = S.pivot;
+      this.spin.position.set(-c.x * k, -c.y * k, -c.z * k);
+      this.watch.position.set(S.posX + c.x * k, S.posY + fl * 0.35 + c.y * k, S.posZ + c.z * k);
       // exploded view
       for (const [name, pivot] of Object.entries(this.parts)) {
         const o = EXPLODE[name];
