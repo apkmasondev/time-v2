@@ -277,7 +277,7 @@ const P = {
 const craft = {
   canvas: $('#craftCanvas'), fr: $('#craftFr'),
   count: 100, blobs: [], bitmaps: new Map(), pending: new Set(),
-  target: 0, drawn: -1, exact: false, dirty: true, loaded: 0, active: false,
+  target: 0, pos: -1, drawn: -1, exact: false, dirty: true, loaded: 0, active: false,
   url(i) { return `seq/craft_${String(i + 1).padStart(3, '0')}.webp`; },
   async fetchRange(a, b) {
     const todo = [];
@@ -321,20 +321,29 @@ const craft = {
   release() {
     for (const bmp of this.bitmaps.values()) bmp.close();
     this.bitmaps.clear();
-    this.drawn = -1; this.exact = false;
+    this.drawn = -1; this.exact = false; this.pos = -1;
   },
+  // The playhead glides after the scroll (so a stop settles instead of halting on a frame) and sits
+  // between two frames most of the time: the next one is laid over the current one by the fraction.
   update() {
     if (!this.active) return;
-    const i = Math.max(0, Math.min(this.count - 1, Math.round(this.target)));
-    if (i === this.drawn && this.exact && !this.dirty) return;
+    if (this.pos < 0 || Math.abs(this.target - this.pos) > 6) this.pos = this.target; // a jump is not a glide
+    const d = this.target - this.pos;
+    this.pos = Math.abs(d) < 0.004 ? this.target : this.pos + d * (1 - Math.pow(0.8, gsap.ticker.deltaRatio(60)));
+    const p = Math.max(0, Math.min(this.count - 1, this.pos));
+    const i = Math.floor(p), f = Math.round((p - i) * 24) / 24; // 1/24 steps: no redraw for sub-visible changes
+    const key = i + f;
+    if (key === this.drawn && this.exact && !this.dirty) return;
     this.want(i);
     const k = this.nearest(i);
     if (k < 0) return;
+    const over = k === i && f > 0 ? this.bitmaps.get(i + 1) : null;
     if (!this.draw(this.bitmaps.get(k))) return;
-    this.drawn = i; this.exact = k === i; this.dirty = false;
-    this.fr.textContent = `FR ${String(k + 1).padStart(3, '0')} / ${this.count}`;
+    if (over) this.draw(over, f);
+    this.drawn = key; this.exact = k === i && (f === 0 || !!over); this.dirty = false;
+    this.fr.textContent = `FR ${String(Math.min(this.count, Math.round(p) + 1)).padStart(3, '0')} / ${this.count}`;
   },
-  draw(img) {
+  draw(img, alpha = 1) {
     const c = this.canvas;
     const dpr = Math.min(devicePixelRatio, 2);
     const W = Math.round(c.clientWidth * dpr), H = Math.round(c.clientHeight * dpr);
@@ -345,7 +354,9 @@ const craft = {
     const iw = img.width * s, ih = img.height * s;
     // on portrait screens keep the interesting right-hand part (case & bracelet) in frame
     const ox = small.matches ? (W - iw) * 0.72 : (W - iw) / 2;
+    g.globalAlpha = alpha;
     g.drawImage(img, ox, (H - ih) / 2, iw, ih);
+    g.globalAlpha = 1;
     return true;
   },
 };
@@ -355,8 +366,31 @@ const loader = $('#loader');
 const prog = { model: 0, video: 0, frames: 0, shown: 0 };
 const introVideo = $('#introVideo');
 const vq = innerWidth * Math.min(devicePixelRatio, 1.5) > 1300 && !navigator.connection?.saveData ? '1080' : '720';
-introVideo.src = `video/intro-${vq}.mp4`;
-introVideo.load();
+// Every film also exists as AV1 (10-bit, about 40-55% of the H.264 size). It is used where the device
+// decodes it smoothly - and, on phones and tablets, in hardware, so the lighter download does not cost battery.
+let vext = '.mp4';
+const film = (name) => `video/${name}-${vq}${vext}`;
+const codecCheck = (async () => {
+  const type = 'video/mp4; codecs="av01.0.08M.10"';
+  try {
+    if (!introVideo.canPlayType(type)) return;
+    const [width, height] = vq === '1080' ? [1920, 1080] : [1280, 720];
+    const r = await navigator.mediaCapabilities?.decodingInfo({ type: 'file', video: { contentType: type, width, height, bitrate: 1.2e6, framerate: 24 } });
+    if (!r || (r.supported && r.smooth && (r.powerEfficient || finePointer))) vext = '.av1.mp4';
+  } catch (e) { /* keep H.264 */ }
+})();
+// a film that fails to decode as AV1 falls back to its H.264 copy, and so do all later ones
+document.addEventListener('error', (e) => {
+  const v = e.target;
+  if (!(v instanceof HTMLVideoElement) || !v.getAttribute('src')?.endsWith('.av1.mp4')) return;
+  e.stopImmediatePropagation(); // not a real failure yet: keep the loader waiting for the fallback
+  vext = '.mp4';
+  const resume = !v.paused || v.autoplay;
+  v.src = v.getAttribute('src').replace('.av1.mp4', '.mp4');
+  v.load();
+  if (resume) v.play().catch(() => {});
+}, true);
+codecCheck.then(() => { introVideo.src = film('intro'); introVideo.load(); });
 
 const videoReady = new Promise((res) => {
   const onProgress = () => {
@@ -540,7 +574,7 @@ function observeReveals() {
 const wrist = {
   day: $('#wristDayVideo'), night: $('#wristNightVideo'), active: new Set(),
   start(v, fromStart = false) {
-    if (!v.src) v.src = `video/${v.dataset.src}-${vq}.mp4`;
+    if (!v.src) v.src = film(v.dataset.src);
     if (fromStart && !this.active.has(v)) v.currentTime = 0;
     this.active.add(v);
     v.play().catch(() => {});
@@ -590,7 +624,7 @@ function buildTimelines() {
 
   // ---------------------------------------------------------------- master 3D choreography
   const bezel = ann('bezel', 'bezel', { dx: () => (small.matches ? 60 : -150), dy: -80 });
-  const kase = ann('case', 'case', { dx: () => (small.matches ? 50 : -170), dy: 90 });
+  const kase = ann('case', 'case', { dx: () => (small.matches ? 50 : -170), dy: 70 });
   const crown = ann('crown', 'crown', { dx: () => (small.matches ? -60 : 110), dy: -120 });
   // exploded view: numbered from the crystal down; side (+1 right / -1 left) and label height
   // (desktop, phone) chosen so that no two labels meet
@@ -626,6 +660,9 @@ function buildTimelines() {
   // III. dial: light sweeps the sunburst, hands travel twelve hours back to "now"
   seg(S, { ...P.dial1(), ease: 'sine.inOut' }, Td - 0.2 * H, Td + rd);
   seg(S, { envRot: 3.4, timeWarp: 12, ease: 'power1.inOut' }, Td, Td + rd);
+  // lights out for a moment: the studio dims and the lume in the indices and hands takes over
+  seg(S, { lume: 1, exposure: 0.8, ease: 'power2.inOut' }, Td + 0.4 * rd, Td + 0.52 * rd);
+  seg(S, { lume: 0, exposure: 1, ease: 'power2.inOut' }, Td + 0.72 * rd, Td + 0.84 * rd);
   // IV. anatomy
   seg(S, { ...P.anat0(), envRot: 5.2 }, Td + rd, Ta + 0.3 * ra);
   seg(S, { bracelet: 0, ease: 'power1.in' }, Td + rd + 0.2 * H, Ta + 0.18 * ra);
@@ -718,7 +755,7 @@ function buildTimelines() {
       start: 'top bottom', end: 'bottom bottom',
       onToggle: (self) => {
         if (self.isActive) {
-          const want = `video/presence-${$('#swatches .is-active').dataset.dial}-${vq}.mp4`;
+          const want = film(`presence-${$('#swatches .is-active').dataset.dial}`);
           if (pv.getAttribute('src') !== want) pv.src = want; // the marble film follows the chosen dial
           pv.play().catch(() => {});
         } else pv.pause();
@@ -977,7 +1014,7 @@ function chooseDial(k) {
 
 const finale = {
   vids: [$('#finaleA'), $('#finaleB')], front: 0, dial: 'obsidian', active: false, fading: false, queued: null,
-  src(k) { return `video/finale-${k}-${vq}.mp4`; },
+  src(k) { return film(`finale-${k}`); },
   poster(k) { return `img/finale-${k}-poster.jpg`; },
   enter() {
     this.active = true;
@@ -1109,6 +1146,8 @@ function openDemo() {
   const title = $('#demoTitle');
   title.classList.remove('is-in');
   demo.showModal();
+  // a modal dialog sits in the top layer, over every z-index: lift the hand cursor there too, above it
+  if (finePointer && cursor.el.showPopover) { cursor.el.popover = 'manual'; cursor.el.showPopover(); }
   requestAnimationFrame(() => requestAnimationFrame(() => title.classList.add('is-in')));
   lenis.stop();
 }
@@ -1116,7 +1155,10 @@ $$('[data-demo]').forEach((b) => b.addEventListener('click', openDemo));
 $('#demoClose').addEventListener('click', () => demo.close());
 $$('#demo [data-close]').forEach((b) => b.addEventListener('click', () => demo.close()));
 demo.addEventListener('click', (e) => { if (e.target === demo) demo.close(); });
-demo.addEventListener('close', () => { if (introDone) lenis.start(); });
+demo.addEventListener('close', () => {
+  if (cursor.el.popover) { cursor.el.hidePopover(); cursor.el.removeAttribute('popover'); }
+  if (introDone) lenis.start();
+});
 
 // ------------------------------------------------------------------ interlude music
 // A separate file (not muxed into the looping marble film), played across the interlude and the wrist
@@ -1176,6 +1218,8 @@ $('#langToggle').addEventListener('click', () => {
 $('#soundToggle').addEventListener('click', () => { setSound(!soundOn); sfx.click(); });
 
 // ------------------------------------------------------------------ main loop
+const dialEl = $('#dial');
+let lumeShown = 0;
 gsap.ticker.add((time) => {
   cursor.update();
   if (!introDone && !document.body.classList.contains('is-intro')) return;
@@ -1185,6 +1229,7 @@ gsap.ticker.add((time) => {
   stage.visible = visible;
   stage.render();
   annotations.update(time);
+  if (S.lume !== lumeShown) { lumeShown = S.lume; dialEl.style.setProperty('--lume', lumeShown.toFixed(3)); }
   craft.update();
   wrist.tick();
   music.tick();

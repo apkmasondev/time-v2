@@ -9,6 +9,7 @@ Strona demonstracyjna pokazująca, jak może wyglądać premium prezentacja prod
 - **Model 3D w czasie rzeczywistym** (three.js). Stal szczotkowana i polerowana, tarcza sunburst, szkło szafirowe i grawerowany dekiel. Wskazówki i data pokazują aktualny czas.
 - **Rozdziały sterowane scrollem:** koperta, makro bransolety, tarcza, widok rozstrzelony z opisem dziewięciu elementów, w tym mechanizmu.
 - **„Na nadgarstku”:** dwa filmy, dzień i noc, łączone w dyptyk.
+- **Chwila w ciemności:** w rozdziale o tarczy światło na moment gaśnie i świeci masa luminescencyjna.
 - **Konfigurator:** pięć tarcz (żółta w wersji bez datownika), trzy oświetlenia studyjne, podgląd dekla, obrót przeciąganiem. Przerywnik i finał pokazują film z wybraną tarczą.
 - **Finał w kolorze wybranej tarczy:** film przenika się do wybranego wariantu w tym samym momencie ujęcia.
 - **Specyfikacja** w formie karty danych manufaktury, z rysunkiem technicznym.
@@ -39,7 +40,7 @@ Każdy push na gałąź `main` buduje stronę i publikuje ją na GitHub Pages (`
 | `src/env.js` | Wirtualne studio fotograficzne: Studio, Noc, Złota godzina. |
 | `src/i18n.js` | Teksty PL / EN i specyfikacja. |
 | `public/models/` | Model zegarka (glTF, kompresja meshopt). |
-| `public/video/`, `public/img/` | Filmy w wersjach 1080p i 720p oraz ich plakaty. Przerywnik i finał mają wersję dla każdej z pięciu tarcz. |
+| `public/video/`, `public/img/` | Filmy w wersjach 1080p i 720p (H.264 oraz lżejsze AV1, wybierane, gdy urządzenie płynnie je dekoduje) i ich plakaty. Przerywnik i finał mają wersję dla każdej z pięciu tarcz. |
 | `public/audio/` | Muzyka przerywnika. |
 | `public/seq/` | Klatki makro bransolety przewijane scrollem. |
 

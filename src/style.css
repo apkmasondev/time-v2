@@ -132,7 +132,7 @@ h1, h2, h3, p, blockquote { margin: 0; }
   0% { transform: translate(0, 0); } 20% { transform: translate(-3%, 2%); } 40% { transform: translate(2%, -4%); }
   60% { transform: translate(-4%, -2%); } 80% { transform: translate(3%, 3%); } 100% { transform: translate(0, 0); }
 }
-/* The watch hand points at the hotspot; over controls, an open champagne ring keeps text visible. */
+/* The watch hand points at the hotspot; over controls it turns into its own open champagne outline, keeping text visible. */
 .cursor { position: fixed; left: 0; top: 0; z-index: 200; pointer-events: none; mix-blend-mode: difference; opacity: 0; transition: opacity .4s; }
 .cursor.is-on { opacity: 1; }
 .cursor__hand {
@@ -141,8 +141,11 @@ h1, h2, h3, p, blockquote { margin: 0; }
   transform-origin: 50% 8%; transform: rotate(-32deg);
   transition: transform .55s cubic-bezier(0.34, 1.7, 0.5, 1), opacity .3s;
 }
+.cursor__hand path { stroke: var(--accent); stroke-width: 0; stroke-linejoin: round; vector-effect: non-scaling-stroke; transition: fill .3s, stroke-width .3s; }
 .cursor.is-hover { mix-blend-mode: normal; }
-.cursor.is-hover .cursor__hand { opacity: 0; }
+.cursor.is-hover .cursor__hand { transform: rotate(-32deg) scale(1.45); }
+.cursor.is-hover .cursor__hand path { fill: transparent; stroke-width: 1.1px; }
+.cursor.is-hover.is-down .cursor__hand { transform: rotate(-32deg) scale(1.2); }
 .cursor.is-down .cursor__hand { transform: rotate(-32deg) scale(0.82); transition-duration: .15s; } /* pressed in place */
 .cursor.is-drag .cursor__hand { opacity: 0; }
 .cursor__ring {
@@ -151,7 +154,6 @@ h1, h2, h3, p, blockquote { margin: 0; }
   opacity: 0; transform: scale(0.35);
   transition: transform .6s var(--ease), opacity .4s var(--ease), width .6s var(--ease), height .6s var(--ease), margin .6s var(--ease);
 }
-.cursor.is-hover .cursor__ring { opacity: 1; transform: none; border-color: var(--accent); }
 .cursor.is-drag .cursor__ring { opacity: 1; transform: none; width: 92px; height: 92px; margin: -46px 0 0 -46px; border-color: rgba(255, 255, 255, 0.6); }
 .cursor__label {
   position: absolute; transform: translate(-50%, -50%); white-space: nowrap;
@@ -161,6 +163,7 @@ h1, h2, h3, p, blockquote { margin: 0; }
 @media (pointer: fine) {
   .has-cursor, .has-cursor a, .has-cursor button, .has-cursor .studio__drag { cursor: none; }
 }
+.cursor[popover] { inset: auto; left: 0; top: 0; width: 0; height: 0; margin: 0; padding: 0; border: 0; background: none; overflow: visible; color: inherit; }
 @media (pointer: coarse) { .cursor { display: none; } }
 
 /* ------------------------------------------------------------------ loader */
@@ -213,11 +216,11 @@ h1, h2, h3, p, blockquote { margin: 0; }
 .annotations { position: fixed; inset: 0; z-index: 4; pointer-events: none; }
 .anno {
   position: absolute; left: 0; top: 0; white-space: nowrap; opacity: 0; will-change: transform, opacity;
-  font-size: 11.5px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent);
+  font-size: 13px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent);
   text-shadow: 0 1px 3px #000, 0 0 12px #000;
 }
-.anno b { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 15px; letter-spacing: 0.06em; margin-right: 12px; }
-.anno small { display: block; margin-top: 7px; font-size: 13px; font-weight: 400; letter-spacing: 0.02em; text-transform: none; color: rgba(236, 235, 230, 0.85); }
+.anno b { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 18px; letter-spacing: 0.06em; margin-right: 12px; }
+.anno small { display: block; margin-top: 8px; font-size: 15px; font-weight: 400; letter-spacing: 0.02em; text-transform: none; color: rgba(236, 235, 230, 0.85); }
 .anno small:empty { display: none; }
 
 /* ------------------------------------------------------------------ intro */
@@ -460,6 +463,16 @@ section { position: relative; }
 .dial__text { position: absolute; right: calc(var(--gutter) + 30px); top: 0; bottom: 0; margin-block: auto; height: fit-content; width: min(34vw, 520px); display: flex; flex-direction: column; gap: 26px; }
 .dial__clock { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 6px; padding-top: 24px; border-top: 1px solid var(--hair); }
 .liveTime--big { font-size: clamp(40px, 4.6vw, 72px); line-height: 1; }
+/* lights-out moment: follows the lume level of the 3D scene (--lume, 0..1, written each frame) */
+.dial__lume {
+  display: flex; align-items: flex-start; gap: 10px; color: #bfe9d2; line-height: 1.6;
+  opacity: var(--lume, 0); translate: 0 calc((1 - var(--lume, 0)) * 8px);
+}
+.dial__lume::before {
+  content: ''; flex: none; width: 6px; height: 6px; margin-top: 0.45em; border-radius: 50%; background: #c9f5dc;
+  box-shadow: 0 0 10px 2px rgba(150, 255, 200, 0.55);
+}
+.dial__text .body, .dial__text .display { opacity: calc(1 - var(--lume, 0) * 0.45); }
 .dial .sticky::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(270deg, rgba(6, 6, 7, 0.92) 0%, rgba(6, 6, 7, 0.7) 28%, rgba(6, 6, 7, 0.25) 46%, transparent 60%); }
 
 /* 04 anatomy */
@@ -744,8 +757,8 @@ section { position: relative; }
   .fswatch { width: 40px; height: 40px; }
   .fswatch i { width: 22px; height: 22px; }
   .finale__shade { background: linear-gradient(0deg, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.55) 45%, rgba(0, 0, 0, 0.1) 75%); }
-  .anno { font-size: 9.5px; letter-spacing: 0.2em; }
-  .anno b { font-size: 13px; margin-right: 8px; }
+  .anno { font-size: 10.5px; letter-spacing: 0.2em; }
+  .anno b { font-size: 15px; margin-right: 8px; }
   .finale__inner { justify-content: flex-end; max-width: none; padding-bottom: 5vh; gap: 18px; }
   .footer { justify-content: center; text-align: center; }
   .footer span:nth-child(2) { display: none; }
