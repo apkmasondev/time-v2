@@ -58,7 +58,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 em { font-style: italic; }
 h1, h2, h3, p, blockquote { margin: 0; }
 :focus { outline: none; }
-:focus-visible { outline: 1px solid var(--paper); outline-offset: 4px; }
+:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
 
 /* ------------------------------------------------------------------ type */
 .display {
@@ -106,14 +106,13 @@ h1, h2, h3, p, blockquote { margin: 0; }
 .btn--solid:is(:hover, :focus-visible, :active), .btn--ghost:is(:hover, :focus-visible, :active) {
   color: var(--paper); border-color: var(--accent); background-color: var(--accent-wash);
 }
-.btn:focus-visible { outline-color: var(--accent); }
 .btn--text { height: 44px; padding: 0 2px; color: var(--muted); }
-.btn--text:hover { color: var(--paper); }
+.btn--text:is(:hover, :focus-visible, :active) { color: var(--accent); }
 .btn--text::after {
   content: ''; position: absolute; left: 2px; right: 2px; bottom: 12px; height: 1px; background: currentColor;
   transform: scaleX(0.28); transform-origin: left; opacity: 0.6; transition: transform .8s var(--ease), opacity .8s var(--ease);
 }
-.btn--text:hover::after { transform: scaleX(1); opacity: 1; }
+.btn--text:is(:hover, :focus-visible)::after { transform: scaleX(1); opacity: 1; }
 .btn--sm.btn--text::after { bottom: 12px; }
 
 .eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
@@ -133,8 +132,7 @@ h1, h2, h3, p, blockquote { margin: 0; }
   0% { transform: translate(0, 0); } 20% { transform: translate(-3%, 2%); } 40% { transform: translate(2%, -4%); }
   60% { transform: translate(-4%, -2%); } 80% { transform: translate(3%, 3%); } 100% { transform: translate(0, 0); }
 }
-/* cursor: the APKMASON arrow as a watch hand. At rest it leans like a pointer, with its tip on the
-   hotspot; over anything clickable it ticks up to 12 o'clock and a hairline bezel opens around it. */
+/* The watch hand points at the hotspot; over controls, an open champagne ring keeps text visible. */
 .cursor { position: fixed; left: 0; top: 0; z-index: 200; pointer-events: none; mix-blend-mode: difference; opacity: 0; transition: opacity .4s; }
 .cursor.is-on { opacity: 1; }
 .cursor__hand {
@@ -143,7 +141,8 @@ h1, h2, h3, p, blockquote { margin: 0; }
   transform-origin: 50% 8%; transform: rotate(-32deg);
   transition: transform .55s cubic-bezier(0.34, 1.7, 0.5, 1), opacity .3s;
 }
-.cursor.is-hover .cursor__hand { transform: translateY(-8px) rotate(0deg) scale(1.08); } /* centred in the bezel, tip to 12 */
+.cursor.is-hover { mix-blend-mode: normal; }
+.cursor.is-hover .cursor__hand { opacity: 0; }
 .cursor.is-down .cursor__hand { transform: translateY(-7px) rotate(0deg) scale(0.82); transition-duration: .15s; }
 .cursor.is-drag .cursor__hand { opacity: 0; }
 .cursor__ring {
@@ -152,7 +151,7 @@ h1, h2, h3, p, blockquote { margin: 0; }
   opacity: 0; transform: scale(0.35);
   transition: transform .6s var(--ease), opacity .4s var(--ease), width .6s var(--ease), height .6s var(--ease), margin .6s var(--ease);
 }
-.cursor.is-hover .cursor__ring { opacity: 1; transform: none; }
+.cursor.is-hover .cursor__ring { opacity: 1; transform: none; border-color: var(--accent); }
 .cursor.is-drag .cursor__ring { opacity: 1; transform: none; width: 92px; height: 92px; margin: -46px 0 0 -46px; border-color: rgba(255, 255, 255, 0.6); }
 .cursor__label {
   position: absolute; transform: translate(-50%, -50%); white-space: nowrap;
@@ -208,17 +207,17 @@ h1, h2, h3, p, blockquote { margin: 0; }
 #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; opacity: 0; transition: opacity 1.6s var(--ease); }
 #gl.is-on { opacity: 1; }
 .leaders { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; overflow: visible; }
-.leaders line { stroke: rgba(236, 235, 230, 0.55); stroke-width: 1; }
-.leaders circle { fill: var(--paper); }
-.leaders circle.halo { fill: none; stroke: rgba(236, 235, 230, 0.4); }
+.leaders line { stroke: rgba(184, 161, 122, 0.75); stroke-width: 1; }
+.leaders circle { fill: var(--accent); }
+.leaders circle.halo { fill: none; stroke: rgba(184, 161, 122, 0.55); }
 .annotations { position: fixed; inset: 0; z-index: 4; pointer-events: none; }
 .anno {
   position: absolute; left: 0; top: 0; white-space: nowrap; opacity: 0; will-change: transform, opacity;
-  font-size: 10.5px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--paper);
-  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.8);
+  font-size: 11.5px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent);
+  text-shadow: 0 1px 3px #000, 0 0 12px #000;
 }
-.anno b { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 15px; letter-spacing: 0.06em; color: var(--steel); margin-right: 12px; }
-.anno small { display: block; margin-top: 6px; font-size: 12px; font-weight: 300; letter-spacing: 0.02em; text-transform: none; color: var(--muted); }
+.anno b { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 15px; letter-spacing: 0.06em; margin-right: 12px; }
+.anno small { display: block; margin-top: 7px; font-size: 13px; font-weight: 400; letter-spacing: 0.02em; text-transform: none; color: rgba(236, 235, 230, 0.85); }
 .anno small:empty { display: none; }
 
 /* ------------------------------------------------------------------ intro */
@@ -326,7 +325,7 @@ h1, h2, h3, p, blockquote { margin: 0; }
   display: grid; place-items: center; width: 38px; height: 38px;
   border: 1px solid var(--hair); color: var(--paper); transition: border-color .6s var(--ease), background .6s var(--ease);
 }
-.nav__sound:hover { border-color: rgba(236, 235, 230, 0.55); background: rgba(236, 235, 230, 0.05); }
+.nav__sound:is(:hover, :focus-visible) { color: var(--accent); border-color: var(--accent); background: var(--accent-wash); }
 .nav__menu {
   display: none; align-items: center; gap: 12px; height: 38px;
   font-size: 10.5px; letter-spacing: 0.28em; text-transform: uppercase;
@@ -428,15 +427,19 @@ section { position: relative; }
 .step p { font-size: 14.5px; line-height: 1.7; font-weight: 300; color: var(--muted); max-width: 40ch; }
 .steps__ticks { position: absolute; left: var(--gutter); bottom: calc(12vh - 34px); display: flex; gap: 8px; }
 .steps__ticks i { width: 26px; height: 1px; background: var(--hair); transition: background .6s var(--ease); }
-.steps__ticks i.is-active { background: var(--paper); }
+.steps__ticks i.is-active { background: var(--accent); }
 .chapter__counter {
-  position: absolute; right: calc(var(--gutter) + 30px); bottom: 12vh;
-  display: grid; grid-template-columns: auto auto; align-items: end; column-gap: 8px;
+  position: absolute; right: calc(var(--gutter) + 30px); bottom: 12vh; isolation: isolate;
+  display: grid; grid-template-columns: auto auto; align-items: baseline; column-gap: 12px; row-gap: 18px;
   text-shadow: 0 2px 30px rgba(0, 0, 0, 0.85), 0 0 12px rgba(0, 0, 0, 0.6);
 }
-.big-num { font-family: var(--serif); font-weight: 300; font-size: clamp(64px, 8vw, 128px); line-height: 0.8; font-variant-numeric: tabular-nums; }
-.chapter__counter .unit { padding-bottom: 6px; font-family: var(--serif); font-size: 24px; color: var(--steel); }
-.chapter__counter .cap { grid-column: span 2; margin-top: 14px; }
+.chapter__counter::before {
+  content: ''; position: absolute; inset: -16px -24px; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse, rgba(6, 6, 7, 0.85), rgba(6, 6, 7, 0.4) 50%, transparent 72%);
+}
+.big-num { font-family: var(--serif); font-weight: 300; font-size: clamp(64px, 8vw, 128px); line-height: 1.05; font-variant-numeric: tabular-nums; }
+.chapter__counter .unit { font-family: var(--serif); font-size: 24px; color: var(--accent); }
+.chapter__counter .cap { grid-column: span 2; color: var(--accent); line-height: 1.6; }
 
 /* 02 bracelet film */
 .craft { height: 440vh; }
@@ -534,9 +537,9 @@ section { position: relative; }
 .studio__drag:active { cursor: grabbing; }
 .studio__panel { position: absolute; left: var(--gutter); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 32px; width: min(30vw, 420px); }
 .studio__group { display: flex; flex-direction: column; gap: 16px; }
-.studio__group--row { flex-direction: row; align-items: center; gap: 12px; }
+.studio__group--row { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px; }
 .swatches { display: flex; gap: 18px; }
-.swatch { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 9.5px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--faint); transition: color .5s; }
+.swatch { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 9.5px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); transition: color .3s ease; }
 .swatch i {
   width: 42px; height: 42px; border-radius: 50%;
   background:
@@ -546,23 +549,17 @@ section { position: relative; }
   transition: box-shadow .6s var(--ease), transform .6s var(--ease);
 }
 .swatch:hover i { transform: scale(1.06); }
-.swatch:hover { color: var(--muted); }
-.swatch.is-active { color: var(--paper); }
-.swatch.is-active i { box-shadow: 0 0 0 1px var(--hair), 0 0 0 5px var(--ink), 0 0 0 6px rgba(236, 235, 230, 0.7); }
+.swatch:is(:hover, :focus-visible), .swatch.is-active { color: var(--accent); }
+.swatch:is(:hover, :focus-visible) i, .swatch.is-active i { box-shadow: 0 0 0 1px var(--hair), 0 0 0 5px var(--ink), 0 0 0 6px var(--accent); }
 .segmented { position: relative; display: inline-flex; align-self: flex-start; border: 1px solid var(--hair); }
 .segmented button {
-  position: relative; isolation: isolate; height: 40px; padding: 0 18px;
+  height: 44px; padding: 0 18px;
   font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted);
-  transition: color .6s var(--ease-io);
+  transition: color .3s ease, background-color .3s ease, box-shadow .3s ease;
 }
 .segmented button + button { border-left: 1px solid var(--hair-2); }
-.segmented button::before {
-  content: ''; position: absolute; inset: 3px; z-index: -1; background: var(--paper);
-  transform: scaleY(0); transform-origin: bottom; transition: transform .7s var(--ease-io);
-}
-.segmented button:hover { color: var(--paper); }
-.segmented button.is-active { color: var(--ink); }
-.segmented button.is-active::before { transform: scaleY(1); }
+.segmented button:is(:hover, :focus-visible) { color: var(--accent); background-color: var(--accent-wash); }
+.segmented button.is-active { color: var(--accent); background-color: var(--accent-wash); box-shadow: inset 0 -2px 0 var(--accent); }
 .studio__name {
   position: absolute; right: calc(var(--gutter) + 30px); top: 50%; transform: translateY(-50%);
   writing-mode: vertical-rl; pointer-events: none;
@@ -593,11 +590,11 @@ section { position: relative; }
   box-shadow: 0 0 0 1px var(--hair); transition: transform .6s var(--ease);
 }
 .fswatch::after {
-  content: ''; position: absolute; inset: 3px; border-radius: 50%; border: 1px solid var(--paper);
+  content: ''; position: absolute; inset: 3px; border-radius: 50%; border: 1px solid var(--accent);
   opacity: 0; transform: scale(0.7); transition: opacity .6s var(--ease), transform .6s var(--ease);
 }
 .fswatch:hover i { transform: scale(1.12); }
-.fswatch.is-active::after { opacity: 0.8; transform: none; }
+.fswatch:is(:hover, :focus-visible)::after, .fswatch.is-active::after { opacity: 1; transform: none; }
 .finale__shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.15) 30%, transparent 55%), linear-gradient(180deg, transparent 70%, rgba(0, 0, 0, 0.8)); }
 .finale__inner, .footer { position: relative; z-index: 1; }
 .finale__inner { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 34px; padding: var(--nav-h) var(--gutter) 0; max-width: 52vw; }

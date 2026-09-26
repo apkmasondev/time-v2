@@ -164,7 +164,7 @@ const formCounter = {
     const [n, key] = this.data[i];
     this.el.textContent = String(n).replace('.', lang === 'pl' ? ',' : '.');
     this.cap.textContent = t(key);
-    if (!silent) gsap.fromTo(this.el, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' });
+    if (!silent) gsap.fromTo(this.el, { opacity: 0 }, { opacity: 1, duration: 0.8, ease: 'power3.out', overwrite: true });
   },
 };
 
