@@ -267,8 +267,8 @@ const P = {
   dial1: () => ({ dist: fit(3.4, small.matches ? 0.72 : 1.0), shiftX: small.matches ? 0 : -0.25, rotX: -0.14, rotY: 0.06, rotZ: -0.08 }),
   anat0: () => ({ dist: fit(9.5, small.matches ? 0.5 : 0.9), shiftX: 0, shiftY: small.matches ? 0.02 : -0.05, rotX: -1.12, rotY: 0, rotZ: 0.45, column: 0.4, columnX: 0, panel: 0, columnW: 0.5 }),
   studio: () => small.matches
-    ? { dist: fit(7.6, 0.42), shiftX: 0, shiftY: 0.18, rotX: 0.05, rotY: -0.3, rotZ: 0, column: 0.8, columnX: 0, panel: 0, pedestal: 0, explode: 0, bracelet: 1, columnW: 0.3, pivot: 1 }
-    : { dist: fit(7.6, 0.8), shiftX: 0.12, shiftY: 0, rotX: 0.05, rotY: -0.3, rotZ: 0, column: 1, columnX: 0.24, panel: 0, pedestal: 0, explode: 0, bracelet: 1, columnW: 0.3, pivot: 1 },
+    ? { dist: fit(7.6, 0.42), shiftX: 0, shiftY: 0.18, rotX: -0.37, rotY: -0.38, rotZ: 0, column: 0.8, columnX: 0, panel: 0, pedestal: 0, explode: 0, bracelet: 1, columnW: 0.3, pivot: 1 }
+    : { dist: fit(7.6, 0.8), shiftX: 0.12, shiftY: 0, rotX: -0.37, rotY: -0.38, rotZ: 0, column: 1, columnX: 0.24, panel: 0, pedestal: 0, explode: 0, bracelet: 1, columnW: 0.3, pivot: 1 },
 };
 
 // ------------------------------------------------------------------ bracelet macro sequence
@@ -634,7 +634,9 @@ function buildTimelines() {
   });
   seg(S, { explode: 0, bracelet: 1, rotX: -0.5, dist: P.anat0().dist * 0.85 }, Ta + 0.87 * ra, Ta + ra + 0.3 * H);
   // hidden during interlude, wrist films and specs: prepare the studio pose
-  seg(S, { ...P.studio(), envRot: 0.4, ease: 'none' }, Tp + 0.5 * rp, Tp + 0.6 * rp);
+  // configurator: three-quarter view tipped towards the viewer, studio lights turned so a bright band
+  // crosses the dial and the polished bezel
+  seg(S, { ...P.studio(), envRot: 1.6, ease: 'none' }, Tp + 0.5 * rp, Tp + 0.6 * rp);
   m.set({}, {}, at(maxY));
   keep(ScrollTrigger.create({ start: 0, end: () => maxY, scrub: reduced ? true : 1.1, animation: m }));
 
@@ -870,7 +872,10 @@ function setActive(sel, pred) {
         .to(S, { exposure: 0.25, duration: 0.35, ease: 'power2.in' })
         .add(() => applyDial3D())
         .to(S, { exposure: 1, duration: 0.9, ease: 'power2.out' });
-      gsap.fromTo(S, { envRot: S.envRot }, { envRot: S.envRot + 1.2, duration: 1.6, ease: 'power3.out' });
+      // one full turn of the studio lights: the highlight sweeps across the new dial and settles
+      // exactly where it was, so the lighting never drifts from click to click
+      const base = S.envRot;
+      gsap.fromTo(S, { envRot: base }, { envRot: base + Math.PI * 2, duration: 2.4, ease: 'power2.inOut', onComplete: () => { S.envRot = base; } });
     });
   }
   for (const b of $$('#lights button')) {

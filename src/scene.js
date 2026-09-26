@@ -323,8 +323,8 @@ export class WatchStage {
     this.mirror = mirror;
     this.pedestalGroup = new THREE.Group();
     this.pedestalGroup.add(this.pedestal);
-    // watch's lowest point sits at y = -3.932 (bracelet loop, 6 o'clock side), its depth centre at z = -2.2
-    this.pedestal.position.set(0, -3.934, -2.2);
+    // watch's lowest point sits at y = -3.914 (bracelet loop, 6 o'clock side), its depth centre at z = -2.2
+    this.pedestal.position.set(0, -3.915, -2.2);
     this.scene.add(this.pedestalGroup);
   }
 
