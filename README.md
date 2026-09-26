@@ -1,6 +1,6 @@
 # APKMASON Automatic — interaktywna prezentacja w 3D
 
-**Zobacz na żywo: [apkmasondev.github.io/time-v2](https://apkmasondev.github.io/time-v2/)**
+**Zobacz na żywo: [apkmason.dev/time-v2](https://apkmason.dev/time-v2/)**
 
 Strona demonstracyjna pokazująca, jak może wyglądać premium prezentacja produktu w przeglądarce: filmowe intro płynnie przechodzi w model zegarka renderowany na żywo, a kolejne rozdziały opowiada scroll. APKMASON to marka pokazowa. Strona nie jest ofertą handlową.
 
