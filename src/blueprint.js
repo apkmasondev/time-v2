@@ -59,6 +59,5 @@ export function buildBlueprint() {
   <text x="-31.5" y="0" text-anchor="middle" transform="rotate(-90 -31.5 0)">43.4 MM</text>
   ${tick(-12.5, -33, 12.5, -33)}
   <text x="0" y="-34.2" text-anchor="middle">25 MM</text>
-  <text x="21" y="33" text-anchor="start" style="font-size:1.8px">1 : 1</text>
 </svg>`;
 }
