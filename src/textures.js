@@ -30,7 +30,7 @@ function rng(seed = 1) {
   return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
 }
 
-export function arrowPath(ctx, cx, cy, h) {
+function arrowPath(ctx, cx, cy, h) {
   // APKMASON arrow mark: a chevron with a notched base
   const w = h * 0.86;
   ctx.beginPath();

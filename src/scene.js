@@ -57,7 +57,7 @@ export class WatchStage {
       dist: 16, fov: 22, shiftX: 0, shiftY: 0,
       rotX: 0, rotY: 0, rotZ: 0, posX: 0, posY: 0, posZ: 0,
       explode: 0, bracelet: 1, pedestal: 1,
-      column: 1, columnX: 0, columnW: 0.3, panel: 1, bgLift: 0,
+      column: 1, columnX: 0, columnW: 0.3, panel: 1,
       envRot: 0, envIntensity: 1, exposure: 1,
       lume: 0, timeWarp: 0, float: 1, parallax: 1, pivot: 0,
       userRotX: 0, userRotY: 0,
@@ -84,12 +84,12 @@ export class WatchStage {
       depthWrite: false, depthTest: false,
       uniforms: {
         uColumn: { value: 1 }, uColumnX: { value: 0 }, uColumnW: { value: 0.3 }, uPanel: { value: 1 },
-        uLift: { value: 0 }, uAspect: { value: 1 }, uTime: { value: 0 }, uLume: { value: 0 },
+        uAspect: { value: 1 }, uTime: { value: 0 }, uLume: { value: 0 },
         uTint: { value: new THREE.Color(1, 1, 1) },
       },
       vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.9999, 1.0); }`,
       fragmentShader: `
-        uniform float uColumn, uColumnX, uColumnW, uPanel, uLift, uAspect, uTime, uLume; uniform vec3 uTint;
+        uniform float uColumn, uColumnX, uColumnW, uPanel, uAspect, uTime, uLume; uniform vec3 uTint;
         varying vec2 vUv;
         float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453); }
         void main(){
@@ -103,7 +103,7 @@ export class WatchStage {
           float W = uColumnW * 1.9;
           float panel = 1.0 - smoothstep(W*0.94, W*1.02, abs(cx));
           float pgrad = mix(0.2, 0.075, smoothstep(-0.7, 1.0, p.y)) * (0.78 + 0.22*exp(-pow(cx/W,2.0)*2.0));
-          vec3 base = vec3(0.012, 0.012, 0.014) + uLift * vec3(0.03);
+          vec3 base = vec3(0.012, 0.012, 0.014);
           vec3 soft = uTint * (col*0.16 + colCore*0.22) * vfall;
           vec3 hard = uTint * vec3(0.9, 0.96, 1.08) * panel * pgrad;
           vec3 c = base + mix(soft, hard, uPanel) * uColumn;
@@ -146,8 +146,12 @@ export class WatchStage {
 
   // ------------------------------------------------------------------ loading
   async load(url, onProgress) {
-    await document.fonts?.ready;
-    // make sure the fonts used for dial printing are really loaded before drawing canvases
+    // fetch the model straight away (it is preloaded) while the fonts for the dial print load
+    const loader = new GLTFLoader();
+    loader.setMeshoptDecoder(MeshoptDecoder);
+    const gltfReady = loader.loadAsync(url, (e) => {
+      if (e.total) onProgress?.(e.loaded / e.total);
+    });
     try {
       await Promise.all([
         document.fonts.load('500 64px "Cormorant Garamond"'),
@@ -155,12 +159,7 @@ export class WatchStage {
         document.fonts.load('600 64px "Manrope"'),
       ]);
     } catch (e) { /* fall back to system fonts */ }
-
-    const loader = new GLTFLoader();
-    loader.setMeshoptDecoder(MeshoptDecoder);
-    const gltf = await loader.loadAsync(url, (e) => {
-      if (e.total) onProgress?.(e.loaded / e.total);
-    });
+    const gltf = await gltfReady;
     this._setupModel(gltf.scene);
     this._initPedestal();
     // compile shaders up-front to avoid a hitch on the first reveal
@@ -270,9 +269,6 @@ export class WatchStage {
       bezel: [['Bezel'], B(-13.2, 12.6, 8.4)],
       crown: [['Crown'], B(24.2, 0, 3.95)],
       case: [['Case'], B(-15.6, -15.5, 5.0)],
-      bracelet: [['Bracelet'], B(0, -30.5, -2)],
-      dial: [['Dial'], B(-6.5, -9.5, 6.8)],
-      date: [['Dial'], B(11.5, 0, 6.8)],
       crystal: [['Crystal'], B(-11.5, -9.5, 9.1)],
       hands: [['MinuteHand'], B(0, 9, 7.6)],
       caseback: [['Caseback'], B(-12, -8, 0.2)],
@@ -320,7 +316,6 @@ export class WatchStage {
     rim.rotation.x = Math.PI / 2;
     this.pedestal = new THREE.Group();
     this.pedestal.add(drum, mirror, shadow, rim);
-    this.mirror = mirror;
     this.pedestalGroup = new THREE.Group();
     this.pedestalGroup.add(this.pedestal);
     // watch's lowest point sits at y = -3.914 (bracelet loop, 6 o'clock side), its depth centre at z = -2.2
@@ -363,11 +358,6 @@ export class WatchStage {
     this.w = w; this.h = h;
   }
 
-  /** Distance at which an object of `sizeUnits` fills `frac` of the viewport height. */
-  distanceFor(sizeUnits, frac, fov = this.S.fov) {
-    return sizeUnits / frac / (2 * Math.tan(THREE.MathUtils.degToRad(fov) / 2));
-  }
-
   project(name, out = { x: 0, y: 0, z: 0 }) {
     const a = this.anchors[name];
     if (!a) return out;
@@ -378,7 +368,7 @@ export class WatchStage {
     return out;
   }
 
-  _updateHands(t) {
+  _updateHands() {
     if (!this.parts.HourHand) return;
     const real = new Date();
     // the date wheel turns over at midnight like the real thing
@@ -445,7 +435,6 @@ export class WatchStage {
     u.uColumnX.value = S.columnX;
     u.uColumnW.value = S.columnW;
     u.uPanel.value = S.panel;
-    u.uLift.value = S.bgLift;
     u.uTime.value = t % 10;
     u.uLume.value = S.lume;
     this.scene.environmentRotation.set(0, S.envRot, 0);
@@ -458,7 +447,7 @@ export class WatchStage {
     const dt = Math.min(this.timer.getDelta(), 0.05);
     const t = this.timer.getElapsed();
     if (!this.visible || !this.watch) return;
-    this._updateHands(t);
+    this._updateHands();
     this._applyState(dt, t);
     this.composer.render(dt);
     this._adapt(dt);

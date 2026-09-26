@@ -96,8 +96,8 @@ function applyLang() {
   for (const el of $$('[data-split]')) split(el);
   $$('.nav__lang span').forEach((s) => s.classList.toggle('is-active', s.dataset.lang === lang));
   $('#soundToggle').setAttribute('aria-label', t('nav.sound'));
-  $('#inquiryClose').setAttribute('aria-label', t('demo.close'));
-  annotations?.relabel();
+  $('#demoClose').setAttribute('aria-label', t('demo.close'));
+  annotations.relabel();
   renderSpecs();
   labelFinaleSwatches();
   $('#flipBtn').textContent = t(flipped ? 'studio.flipBack' : 'studio.flip');
@@ -124,11 +124,9 @@ if (finePointer) {
   addEventListener('pointermove', (e) => { cursor.x = e.clientX; cursor.y = e.clientY; cursor.el.classList.add('is-on'); }, { passive: true });
   document.addEventListener('pointerleave', () => cursor.el.classList.remove('is-on'));
   document.addEventListener('pointerover', (e) => {
-    const hit = e.target.closest('a, button, input, textarea');
+    const hit = e.target.closest('a, button');
     cursor.el.classList.toggle('is-hover', !!hit);
     cursor.el.classList.toggle('is-drag', !hit && !!e.target.closest('[data-cursor="drag"]'));
-    // native caret inside text fields
-    cursor.el.style.visibility = e.target.closest('input, textarea') ? 'hidden' : '';
   });
   for (const b of $$('.btn--solid')) {
     b.addEventListener('pointermove', (e) => {
@@ -198,6 +196,7 @@ class Annotations {
   label(item) {
     const [a, b] = t('a.' + (item.akey || item.key));
     item.el.innerHTML = `${item.num ? `<b>${item.num}</b>` : ''}${a}<small>${b}</small>`;
+    item.w = 0; // re-measured the next time it is shown
   }
   relabel() { Object.values(this.items).forEach((i) => this.label(i)); }
   update(time) {
@@ -221,7 +220,7 @@ class Annotations {
       it.halo.setAttribute('cx', p.x); it.halo.setAttribute('cy', p.y); it.halo.setAttribute('r', 7 * pulse);
       it.halo.style.opacity = it.o * 0.8;
       const right = dx >= 0;
-      const w = it.el.offsetWidth;
+      const w = it.w || (it.w = it.el.offsetWidth);
       const x = Math.max(12, Math.min(innerWidth - w - 12, right ? lx + 12 : lx - 12 - w));
       it.el.style.transform = `translate3d(${x}px, ${ly - 9}px, 0)`;
       it.el.style.textAlign = right ? 'left' : 'right';
@@ -484,6 +483,7 @@ function finishIntro(immediate = false) {
   document.body.classList.remove('is-intro');
   document.body.classList.add('is-ready-ui');
   lenis.start();
+  if (layoutStale) { layoutStale = false; lastW = innerWidth; buildTimelines(); }
   ScrollTrigger.refresh();
   if (small.matches) gsap.to(S, { ...heroPose(), duration: 2.4, ease: 'power3.inOut', delay: immediate ? 0 : 0.2 });
   revealHero();
@@ -633,9 +633,8 @@ function buildTimelines() {
     seg(it, { o: 0, ease: 'none' }, Ta + 0.84 * ra, Ta + 0.88 * ra);
   });
   seg(S, { explode: 0, bracelet: 1, rotX: -0.5, dist: P.anat0().dist * 0.85 }, Ta + 0.87 * ra, Ta + ra + 0.3 * H);
-  // hidden during interlude, wrist films and specs: prepare the studio pose
-  // configurator: three-quarter view tipped towards the viewer, studio lights turned so a bright band
-  // crosses the dial and the polished bezel
+  // prepared while the interlude, wrist films and specs cover the canvas: a three-quarter view tipped
+  // towards the viewer, studio lights turned so a bright band crosses the dial and the polished bezel
   seg(S, { ...P.studio(), envRot: 1.6, ease: 'none' }, Tp + 0.5 * rp, Tp + 0.6 * rp);
   m.set({}, {}, at(maxY));
   keep(ScrollTrigger.create({ start: 0, end: () => maxY, scrub: reduced ? true : 1.1, animation: m }));
@@ -766,14 +765,17 @@ function buildTimelines() {
 
   // studio copy; reset lighting when scrolling back above it
   keep(gsap.fromTo('#studio .studio__panel > *, #studio .studio__hint', { opacity: 0, y: 30 }, { opacity: 1, y: 0, stagger: 0.06, scrollTrigger: st('#studio', { start: 'top 75%', end: 'top 15%', scrub: true }) }));
-  keep(ScrollTrigger.create({ trigger: '#studio', start: 'top bottom', end: 'bottom top', onLeaveBack: () => resetStudio() }));
+  keep(ScrollTrigger.create({
+    trigger: '#studio', start: 'top bottom', end: 'bottom top',
+    onToggle: (self) => { if (self.isActive) applyDial3D(); }, // a dial picked in the finale reaches the model
+    onLeaveBack: () => resetStudio(),
+  }));
 
   // finale film (the variant follows the chosen dial)
   keep(ScrollTrigger.create({
     trigger: '#finale', start: 'top bottom', end: 'bottom top',
     onToggle: (self) => { if (self.isActive) finale.enter(); else finale.leave(); },
   }));
-  keep(ScrollTrigger.create({ trigger: '#studio', start: 'top bottom', end: 'bottom top', onToggle: (self) => { if (self.isActive) applyDial3D(); } }));
   keep(gsap.fromTo('.finale__video', { yPercent: -14 }, { yPercent: 0, ease: 'none', scrollTrigger: { trigger: '#finale', start: 'top bottom', end: 'top top', scrub: true } }));
   keep(gsap.fromTo('.finale__inner > *', { opacity: 0, y: 40 }, { opacity: 1, y: 0, stagger: 0.08, scrollTrigger: { trigger: '#finale', start: 'top 70%', end: 'top 10%', scrub: true } }));
 
@@ -809,8 +811,10 @@ function resetStudio() {
 
 let rebuildTimer;
 let lastW = innerWidth;
+let layoutStale = false;
 addEventListener('resize', () => {
-  if (!introDone) { Object.assign(S, filmPose()); return; }
+  for (const it of Object.values(annotations.items)) it.w = 0;
+  if (!introDone) { Object.assign(S, filmPose()); layoutStale = true; return; }
   craft.dirty = true;
   // mobile browsers resize the viewport height while scrolling (toolbar); only rebuild on real changes
   if (Math.abs(innerWidth - lastW) < 2 && small.matches) return;
@@ -863,19 +867,34 @@ function setActive(sel, pred) {
     }
   });
 
+  // one full turn of the studio lights: the highlight sweeps across the new dial and settles exactly
+  // where it started. Quick repeated clicks continue the same sweep, so the light never drifts.
+  let envHome = null;
+  let dialSwap = null, lightSwap = null; // the running dial / light changes
+  const sweepLight = () => {
+    if (envHome === null) envHome = S.envRot;
+    gsap.killTweensOf(S, 'envRot');
+    gsap.fromTo(S, { envRot: S.envRot }, { envRot: envHome + Math.PI * 2, duration: 2.4, ease: 'power2.inOut', onComplete: settleLight });
+  };
+  const settleLight = () => {
+    if (envHome === null) return;
+    gsap.killTweensOf(S, 'envRot');
+    S.envRot = envHome;
+    envHome = null;
+  };
+
   for (const b of $$('#swatches .swatch')) {
     b.addEventListener('click', () => {
       if (b.classList.contains('is-active')) return;
       sfx.click();
       chooseDial(b.dataset.dial);
-      gsap.timeline()
+      // a quicker next click cancels this swap, so only the final choice redraws the 4K dial texture
+      dialSwap?.kill();
+      dialSwap = gsap.timeline()
         .to(S, { exposure: 0.25, duration: 0.35, ease: 'power2.in' })
         .add(() => applyDial3D())
         .to(S, { exposure: 1, duration: 0.9, ease: 'power2.out' });
-      // one full turn of the studio lights: the highlight sweeps across the new dial and settles
-      // exactly where it was, so the lighting never drifts from click to click
-      const base = S.envRot;
-      gsap.fromTo(S, { envRot: base }, { envRot: base + Math.PI * 2, duration: 2.4, ease: 'power2.inOut', onComplete: () => { S.envRot = base; } });
+      sweepLight();
     });
   }
   for (const b of $$('#lights button')) {
@@ -884,7 +903,8 @@ function setActive(sel, pred) {
       sfx.click();
       setActive('#lights button', (s) => s === b);
       const l = b.dataset.light;
-      gsap.timeline()
+      lightSwap?.kill(); // likewise only the final choice rebuilds the environment map
+      lightSwap = gsap.timeline()
         .to(S, { exposure: 0.3, duration: 0.35, ease: 'power2.in' })
         .add(() => stage.setEnvironment(l))
         .to(S, { exposure: 1, duration: 1.0, ease: 'power2.out' });
@@ -894,6 +914,7 @@ function setActive(sel, pred) {
   // the closed bracelet runs right across the caseback: fold it away while the back is shown
   $('#flipBtn').addEventListener('click', () => {
     sfx.click();
+    settleLight(); // the flip turns the lights from their resting place
     flipped = !flipped;
     const base = Math.round(S.userRotY / (2 * Math.PI)) * 2 * Math.PI;
     gsap.to(S, { userRotY: base + (flipped ? Math.PI : 0), userRotX: 0, duration: 1.8, ease: 'power3.inOut' });
@@ -905,6 +926,7 @@ function setActive(sel, pred) {
   });
   $('#resetBtn').addEventListener('click', () => {
     sfx.click();
+    settleLight();
     if (flipped) {
       gsap.to(S, { bracelet: 1, duration: 0.9, delay: 0.7 });
       gsap.to(S, { envRot: S.envRot - Math.PI, pivot: 1, duration: 1.6, ease: 'power3.inOut' });
@@ -962,8 +984,8 @@ const finale = {
     const inc = this.vids[1 - this.front];
     this.fading = true;
     let settled = false;
-    // a stalled network must not lock the picker: fall back to a plain cut
-    const guard = setTimeout(() => {
+    // a stalled network or a refused play() must not lock the picker: fall back to a plain cut
+    const cut = () => {
       if (settled) return;
       settled = true;
       gsap.set(inc, { opacity: 0 });
@@ -972,7 +994,8 @@ const finale = {
       out.src = this.src(this.dial);
       out.play().catch(() => {});
       done();
-    }, 4000);
+    };
+    const guard = setTimeout(cut, 4000);
     const done = () => {
       clearTimeout(guard);
       this.fading = false;
@@ -1001,7 +1024,7 @@ const finale = {
       inc.addEventListener('seeked', () => {
         inc.play().then(() => {
           if (inc.requestVideoFrameCallback) inc.requestVideoFrameCallback(fade); else requestAnimationFrame(fade);
-        }).catch(done);
+        }).catch(cut);
       }, { once: true });
       inc.currentTime = ((out.currentTime || 0) + 0.12) % (out.duration || 10);
     };
@@ -1048,30 +1071,29 @@ function setMenu(open) {
   menuBtn.querySelector('span').textContent = t(open ? 'nav.close' : 'nav.menu');
   menu.setAttribute('aria-hidden', String(!open));
   menu.inert = !open;
-  if (open) lenis.stop(); else if (introDone && !inquiry.open) lenis.start();
+  if (open) lenis.stop(); else if (introDone && !demo.open) lenis.start();
 }
 menuBtn.addEventListener('click', () => { sfx.click(); setMenu(!document.body.classList.contains('is-menu')); });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('is-menu')) setMenu(false); });
 
 // ------------------------------------------------------------------ demo notice ("ask about availability")
-const inquiry = $('#inquiry');
-function openInquiry() {
+const demo = $('#demo');
+const configSummary = () => `${$('#swatches .is-active span').textContent} · ${t('light.' + (stage.envName || 'studio'))}`;
+function openDemo() {
   sfx.click();
   if (document.body.classList.contains('is-menu')) setMenu(false);
-  const dial = $('#swatches .is-active span').textContent;
-  const light = t('light.' + (stage.envName || 'studio'));
-  $('#inqSummary').textContent = `${dial} · ${light}`;
-  const title = $('#inqTitle');
+  $('#demoSummary').textContent = configSummary();
+  const title = $('#demoTitle');
   title.classList.remove('is-in');
-  inquiry.showModal();
+  demo.showModal();
   requestAnimationFrame(() => requestAnimationFrame(() => title.classList.add('is-in')));
   lenis.stop();
 }
-$$('[data-inquire]').forEach((b) => b.addEventListener('click', openInquiry));
-$('#inquiryClose').addEventListener('click', () => inquiry.close());
-$$('#inquiry [data-close]').forEach((b) => b.addEventListener('click', () => inquiry.close()));
-inquiry.addEventListener('click', (e) => { if (e.target === inquiry) inquiry.close(); });
-inquiry.addEventListener('close', () => { if (introDone) lenis.start(); });
+$$('[data-demo]').forEach((b) => b.addEventListener('click', openDemo));
+$('#demoClose').addEventListener('click', () => demo.close());
+$$('#demo [data-close]').forEach((b) => b.addEventListener('click', () => demo.close()));
+demo.addEventListener('click', (e) => { if (e.target === demo) demo.close(); });
+demo.addEventListener('close', () => { if (introDone) lenis.start(); });
 
 // ------------------------------------------------------------------ interlude music
 // A separate file (not muxed into the looping marble film): it plays once through with fades,
@@ -1086,13 +1108,13 @@ const music = {
     if (a.paused) { a.currentTime = 0; a.volume = 0; a.play().catch(() => {}); }
     gsap.to(a, { volume: 0.85, duration: 1.4, ease: 'power1.out', overwrite: true });
   },
-  stop(immediate = false) {
+  stop() {
     this.wanted = false;
     const a = this.el;
     if (a.paused) return;
-    if (immediate) { gsap.killTweensOf(a); a.pause(); return; }
     gsap.to(a, { volume: 0, duration: 1.4, ease: 'power1.in', overwrite: true, onComplete: () => a.pause() });
   },
+  mute() { gsap.killTweensOf(this.el); this.el.pause(); },
 };
 
 // ------------------------------------------------------------------ chrome
@@ -1103,14 +1125,14 @@ function setSound(on) {
   $('#soundToggle').setAttribute('aria-pressed', String(on));
   // only the intro film carries audio; the interlude track is a separate element
   for (const v of $$('video')) v.muted = !on;
-  if (!on && !music.el.paused) { const w = music.wanted; music.stop(true); music.wanted = w; } else if (on && music.wanted) music.play();
+  if (!on) music.mute(); else if (music.wanted) music.play();
 }
 $('#langToggle').addEventListener('click', () => {
   lang = lang === 'pl' ? 'en' : 'pl';
   try { localStorage.setItem('apk-lang', lang); } catch (e) { /* storage blocked */ }
   sfx.click();
   applyLang();
-  if (inquiry.open) $('#inqSummary').textContent = `${$('#swatches .is-active span').textContent} · ${t('light.' + stage.envName)}`;
+  if (demo.open) $('#demoSummary').textContent = configSummary();
 });
 $('#soundToggle').addEventListener('click', () => { setSound(!soundOn); sfx.click(); });
 
