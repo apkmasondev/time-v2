@@ -143,7 +143,7 @@ h1, h2, h3, p, blockquote { margin: 0; }
 }
 .cursor.is-hover { mix-blend-mode: normal; }
 .cursor.is-hover .cursor__hand { opacity: 0; }
-.cursor.is-down .cursor__hand { transform: translateY(-7px) rotate(0deg) scale(0.82); transition-duration: .15s; }
+.cursor.is-down .cursor__hand { transform: rotate(-32deg) scale(0.82); transition-duration: .15s; } /* pressed in place */
 .cursor.is-drag .cursor__hand { opacity: 0; }
 .cursor__ring {
   position: absolute; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%;
@@ -393,7 +393,7 @@ section { position: relative; }
 .hero__time { display: flex; flex-direction: column; gap: 6px; }
 .hero__time span { font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--faint); }
 .hero__note { font-size: 12.5px; line-height: 1.6; font-weight: 300; color: var(--faint); }
-.liveTime { font-family: var(--serif); font-weight: 300; font-size: 32px; letter-spacing: 0.06em; font-variant-numeric: tabular-nums; }
+.liveTime { font-family: var(--serif); font-weight: 300; font-size: 32px; letter-spacing: 0.06em; font-variant-numeric: tabular-nums; color: var(--accent); }
 .scrollcue {
   position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%);
   display: flex; flex-direction: column; align-items: center; gap: 12px;
@@ -410,7 +410,8 @@ section { position: relative; }
 /* chapter scaffolding */
 .chapter { height: 420vh; }
 .chapter__head { position: absolute; left: var(--gutter); top: calc(var(--nav-h) + 8vh); display: flex; flex-direction: column; gap: 26px; max-width: min(40vw, 640px); }
-.chapter__head--center { left: 50%; transform: translateX(-50%); width: 90vw; max-width: 900px; top: calc(var(--nav-h) + 2vh); align-items: center; text-align: center; }
+/* centred without transform: GSAP animates y on these blocks and would otherwise drop the -50% */
+.chapter__head--center { left: 0; right: 0; margin-inline: auto; width: 90vw; max-width: 900px; top: calc(var(--nav-h) + 2vh); align-items: center; text-align: center; }
 .chapter__head--center .eyebrow { justify-content: center; }
 .chapter__head--center .body { max-width: 46ch; }
 
@@ -456,7 +457,7 @@ section { position: relative; }
 
 /* 03 dial */
 .dial { height: 380vh; }
-.dial__text { position: absolute; right: calc(var(--gutter) + 30px); top: 50%; transform: translateY(-50%); width: min(34vw, 520px); display: flex; flex-direction: column; gap: 26px; }
+.dial__text { position: absolute; right: calc(var(--gutter) + 30px); top: 0; bottom: 0; margin-block: auto; height: fit-content; width: min(34vw, 520px); display: flex; flex-direction: column; gap: 26px; }
 .dial__clock { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 6px; padding-top: 24px; border-top: 1px solid var(--hair); }
 .liveTime--big { font-size: clamp(40px, 4.6vw, 72px); line-height: 1; }
 .dial .sticky::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(270deg, rgba(6, 6, 7, 0.92) 0%, rgba(6, 6, 7, 0.7) 28%, rgba(6, 6, 7, 0.25) 46%, transparent 60%); }
@@ -517,7 +518,7 @@ section { position: relative; }
   font-family: var(--serif); font-weight: 400; font-size: 24px; line-height: 1;
   opacity: 0; transform: translateY(14px); transition: opacity 1s var(--ease), transform 1.2s var(--ease);
 }
-.spec-group__title .num { font-style: italic; font-size: 14px; color: var(--steel); }
+.spec-group__title .num { font-style: italic; font-size: 14px; color: var(--accent); }
 .spec-group.is-in .spec-group__title { opacity: 1; transform: none; }
 .spec-group dl { margin: 0; }
 .spec {
@@ -537,6 +538,12 @@ section { position: relative; }
 .studio__drag:active { cursor: grabbing; }
 .studio__panel { position: absolute; left: var(--gutter); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 32px; width: min(30vw, 420px); }
 .studio__group { display: flex; flex-direction: column; gap: 16px; }
+.studio__note {
+  display: flex; align-items: baseline; gap: 10px; max-width: 34ch;
+  font-size: 12px; line-height: 1.55; color: var(--accent);
+}
+.studio__note::before { content: ''; flex: none; width: 18px; height: 1px; background: currentColor; transform: translateY(-3px); }
+.studio__note[hidden] { display: none; }
 .studio__group--row { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px; }
 .swatches { display: flex; gap: 18px; }
 .swatch { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 9.5px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); transition: color .3s ease; }
@@ -692,7 +699,7 @@ section { position: relative; }
   .craft__shade { background: linear-gradient(180deg, transparent 20%, rgba(0, 0, 0, 0.2) 45%, rgba(0, 0, 0, 0.88) 100%); }
   .craft__hud span:first-child { display: none; }
 
-  .dial__text { left: var(--gutter); right: auto; top: auto; bottom: 22vh; transform: none; width: calc(100vw - 2 * var(--gutter)); gap: 14px; }
+  .dial__text { left: var(--gutter); right: auto; top: auto; bottom: 22vh; margin: 0; width: calc(100vw - 2 * var(--gutter)); gap: 14px; }
   .dial__text { bottom: 6vh; }
   .dial__text .body { display: none; }
   .dial__clock { padding-top: 16px; margin-top: 0; }

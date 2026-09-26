@@ -189,7 +189,7 @@
           <div class="dial__clock">
             <span class="cap" data-i18n="dial.clockcap">Wskazówki pokazują Twój czas</span>
             <b class="liveTime liveTime--big">--:--:--</b>
-            <span class="cap cap--muted" data-i18n="dial.note">Data na godzinie 3 · płynny sekundnik</span>
+            <span class="cap cap--muted" id="dialChapterNote" data-i18n="dial.note">Data na godzinie 3 · płynny sekundnik</span>
           </div>
         </div>
       </div>
@@ -210,7 +210,7 @@
     <section class="presence" id="presence" data-chapter="presence">
       <div class="sticky">
         <div class="presence__stage" id="presenceStage">
-          <video class="presence__video" id="presenceVideo" playsinline muted loop preload="none" poster="img/presence-poster.jpg"></video>
+          <video class="presence__video" id="presenceVideo" playsinline muted loop preload="none" poster="img/presence-obsidian-poster.jpg"></video>
           <div class="presence__shade"></div>
         </div>
         <blockquote class="presence__quote">
@@ -228,7 +228,7 @@
           <p class="wrist__tag"><span class="wrist__tagname" data-i18n="wrist.day">Dzień</span><span class="cap" data-i18n="wrist.dayCap">Beton, szkło, światło dnia</span></p>
         </div>
         <div class="wrist__panel wrist__panel--night" id="wristNight">
-          <video class="wrist__video" id="wristNightVideo" playsinline muted preload="none" poster="img/wrist-night-poster.jpg" data-src="wrist-night" data-loop="5.0833"></video>
+          <video class="wrist__video" id="wristNightVideo" playsinline muted preload="none" poster="img/wrist-night-poster.jpg" data-src="wrist-night" data-loop="5.125"></video>
           <div class="wrist__shade"></div>
           <p class="wrist__tag"><span class="wrist__tagname" data-i18n="wrist.night">Noc</span><span class="cap" data-i18n="wrist.nightCap">Wieczór nad miastem</span></p>
         </div>
@@ -273,6 +273,7 @@
             <button class="swatch" role="radio" aria-checked="false" data-dial="verde" style="--c:#1e5c31"><i></i><span data-i18n="dial.green">Zielona</span></button>
             <button class="swatch" role="radio" aria-checked="false" data-dial="solar" style="--c:#dcaa22"><i></i><span data-i18n="dial.yellow">Żółta</span></button>
           </div>
+          <p class="studio__note" id="dialNote" data-i18n="studio.nodate" aria-live="polite" hidden>Wersja bez datownika.</p>
         </div>
         <div class="studio__group">
           <span class="cap" data-i18n="studio.light">Światło</span>

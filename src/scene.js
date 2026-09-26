@@ -19,15 +19,17 @@ export const DIALS = {
   abyss: { base: '#1c3c7c', print: '#f0efe9', grain: 0.07, rough: 0.32, metal: 0.65, center: 'rgba(120,160,255,0.2)', edge: 'rgba(0,3,18,0.72)' },
   verde: { base: '#1d5c30', print: '#f0efe9', grain: 0.07, rough: 0.32, metal: 0.65, center: 'rgba(170,255,175,0.14)', edge: 'rgba(0,10,2,0.72)' },
   // lower metalness keeps it a lacquered yellow instead of turning brassy gold
-  solar: { base: '#e3ae1e', print: '#17140c', grain: 0.05, rough: 0.28, metal: 0.18, center: 'rgba(255,245,200,0.3)', edge: 'rgba(120,70,0,0.45)', date: ['#f6f4ee', '#17140c'] },
+  // no-date version, as in the films: the aperture closes and the 3 o'clock index runs full length
+  solar: { base: '#e3ae1e', print: '#17140c', grain: 0.05, rough: 0.28, metal: 0.18, center: 'rgba(255,245,200,0.3)', edge: 'rgba(120,70,0,0.45)', noDate: true },
 };
 
 // how far each component travels in the exploded view (glTF units = mm, +Y = dial normal)
 const EXPLODE = {
-  Crystal: [0, 36, 0], Bezel: [0, 27, 0], Flange: [0, 19.5, 0],
-  SecondHand: [0, 15, 0], MinuteHand: [0, 13.2, 0], HourHand: [0, 11.4, 0],
-  Indices: [0, 5.6, 0], DateFrame: [0, 5.6, 0], Dial: [0, 4, 0], DateDisc: [0, 2, 0],
-  Case: [0, 0, 0], Crown: [15, 0, 0], Caseback: [0, -17, 0], Bracelet: [0, -12, 0],
+  // everything above the case lifts well clear of it, so its bore (and the movement below) shows
+  Crystal: [0, 41, 0], Bezel: [0, 32, 0], Flange: [0, 24.5, 0],
+  SecondHand: [0, 20, 0], MinuteHand: [0, 18.2, 0], HourHand: [0, 16.4, 0],
+  Indices: [0, 10.6, 0], DateFrame: [0, 10.6, 0], Dial: [0, 9, 0], DateDisc: [0, 7, 0],
+  Case: [0, 0, 0], Crown: [15, 0, 0], Movement: [0, -12, 0], Caseback: [0, -22, 0], Bracelet: [0, -12, 0],
 };
 
 export class WatchStage {
@@ -207,7 +209,11 @@ export class WatchStage {
     const caseback = new THREE.MeshPhysicalMaterial({
       color: 0xe9e9ec, metalness: 1, roughness: 0.16, bumpMap: cb.bump, bumpScale: 0.6,
     });
-    this.mats = { polished, brushed: brushedMat, dial, dialSide, lume, crystal, date, flange, caseback, dialTex };
+    // movement: rhodium-plated plate, gilt wheels, rubies
+    const mvPlate = new THREE.MeshPhysicalMaterial({ color: 0xc8cbd0, metalness: 1, roughness: 0.34 });
+    const mvGold = new THREE.MeshPhysicalMaterial({ color: 0xd6b16c, metalness: 1, roughness: 0.26 });
+    const jewel = new THREE.MeshPhysicalMaterial({ color: 0x8c0a24, metalness: 0, roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.03 });
+    this.mats = { polished, brushed: brushedMat, dial, dialSide, lume, crystal, date, flange, caseback, dialTex, mvPlate, mvGold, jewel };
     // bracelet gets its own clones so it can fade independently in the exploded view
     this.mats.bPolished = polished.clone();
     this.mats.bBrushed = brushedMat.clone();
@@ -219,6 +225,7 @@ export class WatchStage {
     const byName = {
       SteelPolished: M.polished, SteelBrushed: M.brushed, Dial: M.dial, DialSide: M.dialSide,
       Lume: M.lume, Crystal: M.crystal, DateDisc: M.date, Flange: M.flange, Caseback: M.caseback,
+      MovementPlate: M.mvPlate, MovementGold: M.mvGold, Jewel: M.jewel,
     };
     root.traverse((o) => {
       if (!o.isMesh) return;
@@ -268,11 +275,12 @@ export class WatchStage {
     const A = {
       bezel: [['Bezel'], B(-13.2, 12.6, 8.4)],
       crown: [['Crown'], B(24.2, 0, 3.95)],
-      case: [['Case'], B(-15.6, -15.5, 5.0)],
+      case: [['Case'], B(-19.9, -2.0, 3.6)],   // left flank, 9 o'clock
       crystal: [['Crystal'], B(-11.5, -9.5, 9.1)],
       hands: [['MinuteHand'], B(0, 9, 7.6)],
       caseback: [['Caseback'], B(-12, -8, 0.2)],
-      indices: [['Indices'], B(12.9 * Math.cos(Math.PI / 6 * 2), 12.9 * Math.sin(Math.PI / 6 * 2), 7.2)],
+      movement: [['Movement'], B(9.0, -9.2, 3.0)],   // front edge of the plate
+      indices: [['Indices'], B(12.9 * Math.cos(Math.PI / 6 * 5), 12.9 * Math.sin(Math.PI / 6 * 5), 7.2)], // 10 o'clock index
       flange: [['Flange'], B(-16.5, 3, 7.4)],
     };
     for (const [k, [[part], v]] of Object.entries(A)) {
@@ -281,6 +289,68 @@ export class WatchStage {
       this.parts[part].add(a);
       this.anchors[k] = a;
     }
+    this._initNoDate(root);
+  }
+
+  // Parts of the no-date dial, hidden until a dial that needs them is chosen: a patch of dial over
+  // the date aperture (same planar mapping as the dial, so print and sunburst run on unbroken) and a
+  // full-length index at 3 o'clock over the short one.
+  _initNoDate(root) {
+    let dialMesh = null;
+    this.parts.Dial.traverse((o) => { if (o.isMesh && o.material === this.mats.dial) dialMesh = o; });
+    root.updateMatrixWorld(true);
+    const toLocal = (x, y, z) => dialMesh.worldToLocal(root.localToWorld(B(x, y, z)));
+    // least-squares fit of the dial's uv as a linear function of its local position
+    const P = dialMesh.geometry.attributes.position, U = dialMesh.geometry.attributes.uv;
+    const fit = (c) => {
+      const A = Array.from({ length: 4 }, () => [0, 0, 0, 0]), r = [0, 0, 0, 0];
+      for (let i = 0; i < P.count; i++) {
+        const row = [P.getX(i), P.getY(i), P.getZ(i), 1];
+        const u = c ? U.getY(i) : U.getX(i);
+        for (let a = 0; a < 4; a++) { r[a] += row[a] * u; for (let b = 0; b < 4; b++) A[a][b] += row[a] * row[b]; }
+      }
+      for (let a = 0; a < 3; a++) A[a][a] += 1e-6 * P.count; // the dial is flat: keep the normal axis well-posed
+      // Gaussian elimination
+      for (let a = 0; a < 4; a++) {
+        let m = a;
+        for (let b = a + 1; b < 4; b++) if (Math.abs(A[b][a]) > Math.abs(A[m][a])) m = b;
+        [A[a], A[m]] = [A[m], A[a]]; [r[a], r[m]] = [r[m], r[a]];
+        for (let b = a + 1; b < 4; b++) {
+          const f = A[b][a] / A[a][a];
+          for (let k = a; k < 4; k++) A[b][k] -= f * A[a][k];
+          r[b] -= f * r[a];
+        }
+      }
+      const x = [0, 0, 0, 0];
+      for (let a = 3; a >= 0; a--) { let v = r[a]; for (let k = a + 1; k < 4; k++) v -= A[a][k] * x[k]; x[a] = v / A[a][a]; }
+      return (v) => x[0] * v.x + x[1] * v.y + x[2] * v.z + x[3];
+    };
+    const fu = fit(0), fv = fit(1);
+    const z = 6.8 + 0.004;
+    const corners = [toLocal(10.05, -1.15, z), toLocal(12.95, -1.15, z), toLocal(12.95, 1.15, z), toLocal(10.05, 1.15, z)];
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(corners.flatMap((v) => [v.x, v.y, v.z])), 3));
+    geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(corners.flatMap((v) => [fu(v), fv(v)])), 2));
+    const up = toLocal(0, 0, 1).sub(toLocal(0, 0, 0));
+    const n = new THREE.Vector3().subVectors(corners[1], corners[0]).cross(new THREE.Vector3().subVectors(corners[2], corners[0]));
+    geo.setIndex(n.dot(up) > 0 ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2]);
+    geo.computeVertexNormals();
+    this.datePatch = new THREE.Mesh(geo, this.mats.dial);
+    dialMesh.add(this.datePatch);
+    // full-length 3 o'clock index (Blender x along 12.9 +- 2.1, width 1.0, height 0.42) with its lume strip
+    this.index3 = new THREE.Group();
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.42, 1.0), this.mats.polished);
+    bar.position.copy(B(12.9, 0, 6.8 + 0.21));
+    const glow = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.06, 0.36), this.mats.lume);
+    glow.position.copy(B(12.9, 0, 6.8 + 0.42 + 0.015));
+    this.index3.add(bar, glow);
+    this.parts.Indices.add(this.index3);
+    this._setNoDate(false);
+  }
+
+  _setNoDate(on) {
+    this.datePatch.visible = this.index3.visible = on;
+    this.parts.DateDisc.visible = this.parts.DateFrame.visible = !on;
   }
 
   _initPedestal() {
@@ -335,6 +405,7 @@ export class WatchStage {
     this.mats.dialTex = t;
     this.dateInk = v.date || ['#efeee9', '#0d0d0f'];
     this._setDate(new Date().getDate());
+    this._setNoDate(!!v.noDate);
     old?.map.dispose(); old?.orm.dispose();
   }
 

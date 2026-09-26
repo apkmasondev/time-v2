@@ -1,7 +1,7 @@
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
-import { WatchStage } from './scene.js';
+import { WatchStage, DIALS } from './scene.js';
 import { DICT } from './i18n.js';
 import { buildBlueprint } from './blueprint.js';
 import { grainDataURL } from './textures.js';
@@ -264,7 +264,7 @@ const P = {
     ? { dist: fit(3.4, 0.62), shiftX: 0, shiftY: 0.16, rotX: -0.36, rotY: 0.22, rotZ: 0.12, column: 0.25, columnX: 0, panel: 0, pedestal: 0, bracelet: 1, explode: 0 }
     : { dist: fit(3.4, 0.92), shiftX: -0.2, shiftY: 0.02, rotX: -0.36, rotY: 0.3, rotZ: 0.12, column: 0.25, columnX: -0.4, panel: 0, pedestal: 0, bracelet: 1, explode: 0 },
   dial1: () => ({ dist: fit(3.4, small.matches ? 0.72 : 1.0), shiftX: small.matches ? 0 : -0.25, rotX: -0.14, rotY: 0.06, rotZ: -0.08 }),
-  anat0: () => ({ dist: fit(9.5, small.matches ? 0.5 : 0.9), shiftX: 0, shiftY: small.matches ? 0.02 : -0.05, rotX: -1.12, rotY: 0, rotZ: 0.45, column: 0.4, columnX: 0, panel: 0, columnW: 0.5 }),
+  anat0: () => ({ dist: fit(10.2, small.matches ? 0.5 : 0.9), shiftX: 0, shiftY: small.matches ? 0.02 : -0.05, rotX: -1.12, rotY: 0, rotZ: 0.45, column: 0.4, columnX: 0, panel: 0, columnW: 0.5 }),
   studio: () => small.matches
     ? { dist: fit(7.6, 0.42), shiftX: 0, shiftY: 0.18, rotX: -0.37, rotY: -0.38, rotZ: 0, column: 0.8, columnX: 0, panel: 0, pedestal: 0, explode: 0, bracelet: 1, columnW: 0.3, pivot: 1 }
     : { dist: fit(7.6, 0.8), shiftX: 0.12, shiftY: 0, rotX: -0.37, rotY: -0.38, rotZ: 0, column: 1, columnX: 0.24, panel: 0, pedestal: 0, explode: 0, bracelet: 1, columnW: 0.3, pivot: 1 },
@@ -325,12 +325,12 @@ const craft = {
   },
   update() {
     if (!this.active) return;
-    const i = Math.round(this.target);
+    const i = Math.max(0, Math.min(this.count - 1, Math.round(this.target)));
     if (i === this.drawn && this.exact && !this.dirty) return;
     this.want(i);
     const k = this.nearest(i);
     if (k < 0) return;
-    this.draw(this.bitmaps.get(k));
+    if (!this.draw(this.bitmaps.get(k))) return;
     this.drawn = i; this.exact = k === i; this.dirty = false;
     this.fr.textContent = `FR ${String(k + 1).padStart(3, '0')} / ${this.count}`;
   },
@@ -338,7 +338,7 @@ const craft = {
     const c = this.canvas;
     const dpr = Math.min(devicePixelRatio, 2);
     const W = Math.round(c.clientWidth * dpr), H = Math.round(c.clientHeight * dpr);
-    if (!W || !H) return;
+    if (!W || !H) return false;
     if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
     const g = c.getContext('2d');
     const s = Math.max(W / img.width, H / img.height);
@@ -346,6 +346,7 @@ const craft = {
     // on portrait screens keep the interesting right-hand part (case & bracelet) in frame
     const ox = small.matches ? (W - iw) * 0.72 : (W - iw) / 2;
     g.drawImage(img, ox, (H - ih) / 2, iw, ih);
+    return true;
   },
 };
 
@@ -427,6 +428,7 @@ for (const b of $$('[data-enter]')) {
 const intro = $('#intro');
 let introDone = false;
 let introTicker = null;
+let settleTween = null; // phones: the watch easing into its hero pose after the film
 
 function playIntro() {
   document.body.classList.add('is-intro');
@@ -485,7 +487,7 @@ function finishIntro(immediate = false) {
   lenis.start();
   if (layoutStale) { layoutStale = false; lastW = innerWidth; buildTimelines(); }
   ScrollTrigger.refresh();
-  if (small.matches) gsap.to(S, { ...heroPose(), duration: 2.4, ease: 'power3.inOut', delay: immediate ? 0 : 0.2 });
+  if (small.matches) settleTween = gsap.to(S, { ...heroPose(), duration: 2.4, ease: 'power3.inOut', delay: immediate ? 0 : 0.2 });
   revealHero();
 }
 
@@ -590,13 +592,14 @@ function buildTimelines() {
   const bezel = ann('bezel', 'bezel', { dx: () => (small.matches ? 60 : -150), dy: -80 });
   const kase = ann('case', 'case', { dx: () => (small.matches ? 50 : -170), dy: 90 });
   const crown = ann('crown', 'crown', { dx: () => (small.matches ? -60 : 110), dy: -120 });
+  // exploded view: numbered from the crystal down; side (+1 right / -1 left) and label height
+  // (desktop, phone) chosen so that no two labels meet
   const parts = [
-    ['crystal', '01', 1], ['bezel', '02', -1], ['hands', '03', 1], ['flange', '04', -1],
-    ['indices', '05', 1], ['case', '06', -1], ['crown', '07', 1], ['caseback', '08', -1],
+    ['crystal', 1, -24, -12], ['bezel', -1, -24, -12], ['flange', -1, -10, -4], ['hands', 1, -58, -22],
+    ['indices', -1, 10, 6], ['case', -1, -8, -6], ['crown', 1, 44, 30], ['movement', 1, 8, 10], ['caseback', -1, -10, -8],
   ];
-  const xa = parts.map(([k, n, side]) => {
-    const mdy = { hands: -22, indices: 8, crown: 30 }[k] ?? -12;
-    const it = ann('x' + k, k, { num: n, dx: () => side * (small.matches ? 34 : Math.min(260, innerWidth * 0.16)), dy: () => (small.matches ? mdy : ({ hands: -58, indices: 8 }[k] ?? -24)) });
+  const xa = parts.map(([k, side, dy, mdy], i) => {
+    const it = ann('x' + k, k, { num: String(i + 1).padStart(2, '0'), dx: () => side * (small.matches ? 34 : Math.min(260, innerWidth * 0.16)), dy: () => (small.matches ? mdy : dy) });
     it.akey = k;
     return it;
   });
@@ -637,7 +640,11 @@ function buildTimelines() {
   // towards the viewer, studio lights turned so a bright band crosses the dial and the polished bezel
   seg(S, { ...P.studio(), envRot: 1.6, ease: 'none' }, Tp + 0.5 * rp, Tp + 0.6 * rp);
   m.set({}, {}, at(maxY));
-  keep(ScrollTrigger.create({ start: 0, end: () => maxY, scrub: reduced ? true : 1.1, animation: m }));
+  keep(ScrollTrigger.create({
+    start: 0, end: () => maxY, scrub: reduced ? true : 1.1, animation: m,
+    // scrolling takes over from the post-film settle, which would otherwise keep writing the hero pose
+    onUpdate: () => { if (settleTween) { settleTween.kill(); settleTween = null; } },
+  }));
 
   // ---------------------------------------------------------------- per-section DOM
   keep(gsap.timeline({ scrollTrigger: st('#hero', { end: 'bottom top', scrub: true }) })
@@ -669,6 +676,9 @@ function buildTimelines() {
   }));
   keep(gsap.timeline({
     scrollTrigger: st('#craft', {
+      // Lenis already smooths the scroll. Keep the crop/scale and sequence on that
+      // same playhead instead of letting a second scrub keep moving after it stops.
+      scrub: true,
       onUpdate: (self) => {
         const p = self.progress;
         craft.target = gsap.utils.clamp(0, craft.count - 1, gsap.utils.mapRange(0.1, 0.9, 0, craft.count - 1, p));
@@ -708,7 +718,8 @@ function buildTimelines() {
       start: 'top bottom', end: 'bottom bottom',
       onToggle: (self) => {
         if (self.isActive) {
-          if (!pv.src) pv.src = `video/presence-${vq}.mp4`;
+          const want = `video/presence-${$('#swatches .is-active').dataset.dial}-${vq}.mp4`;
+          if (pv.getAttribute('src') !== want) pv.src = want; // the marble film follows the chosen dial
           pv.play().catch(() => {});
         } else pv.pause();
       },
@@ -956,6 +967,11 @@ function chooseDial(k) {
   setActive('#swatches .swatch', (s) => s.dataset.dial === k);
   setActive('#finaleSwatches .fswatch', (s) => s.dataset.dial === k);
   $('#studioName').textContent = $('#swatches .is-active span').textContent;
+  $('#dialNote').hidden = !DIALS[k].noDate;
+  const note = $('#dialChapterNote'); // the dial chapter's caption follows the date / no-date version
+  note.dataset.i18n = DIALS[k].noDate ? 'dial.noteNoDate' : 'dial.note';
+  note.textContent = t(note.dataset.i18n);
+  $('#presenceVideo').poster = `img/presence-${k}-poster.jpg`; // its film is swapped on the next visit
   finale.show(k);
 }
 
