@@ -1103,25 +1103,41 @@ demo.addEventListener('click', (e) => { if (e.target === demo) demo.close(); });
 demo.addEventListener('close', () => { if (introDone) lenis.start(); });
 
 // ------------------------------------------------------------------ interlude music
-// A separate file (not muxed into the looping marble film): it plays once through with fades,
-// and it is only downloaded by visitors who turned the sound on.
+// A separate file (not muxed into the looping marble film), played across the interlude and the wrist
+// films, and only downloaded by visitors who turned the sound on. The track ends in a natural decay:
+// the next pass starts from its quiet opening under that tail, so it loops with no gap and no seam.
 const music = {
-  el: new Audio(), wanted: false,
+  src: 'audio/interlude.m4a', vol: 0.85, overlap: 2.5,
+  els: [new Audio(), new Audio()], cur: 0, wanted: false,
+  get el() { return this.els[this.cur]; },
+  start(a) {
+    if (!a.getAttribute('src')) { a.src = this.src; a.preload = 'auto'; }
+    a.currentTime = 0; a.volume = 0;
+    a.play().catch(() => {});
+  },
   play() {
     this.wanted = true;
     if (!soundOn) return;
     const a = this.el;
-    if (!a.getAttribute('src')) { a.src = 'audio/interlude.m4a'; a.preload = 'auto'; }
-    if (a.paused) { a.currentTime = 0; a.volume = 0; a.play().catch(() => {}); }
-    gsap.to(a, { volume: 0.85, duration: 1.4, ease: 'power1.out', overwrite: true });
+    if (a.paused) this.start(a);
+    gsap.to(a, { volume: this.vol, duration: 1.4, ease: 'power1.out', overwrite: true });
   },
   stop() {
     this.wanted = false;
-    const a = this.el;
-    if (a.paused) return;
-    gsap.to(a, { volume: 0, duration: 1.4, ease: 'power1.in', overwrite: true, onComplete: () => a.pause() });
+    for (const a of this.els) {
+      if (!a.paused) gsap.to(a, { volume: 0, duration: 1.4, ease: 'power1.in', overwrite: true, onComplete: () => a.pause() });
+    }
   },
-  mute() { gsap.killTweensOf(this.el); this.el.pause(); },
+  mute() { for (const a of this.els) { gsap.killTweensOf(a); a.pause(); } },
+  // called every frame: hand over to the other element as the current pass starts to fade
+  tick() {
+    const a = this.el;
+    if (!this.wanted || a.paused || !a.duration || a.duration - a.currentTime > this.overlap) return;
+    this.cur = 1 - this.cur;
+    const next = this.el;
+    this.start(next);
+    gsap.to(next, { volume: this.vol, duration: this.overlap, ease: 'power1.inOut', overwrite: true });
+  },
 };
 
 // ------------------------------------------------------------------ chrome
@@ -1155,6 +1171,7 @@ gsap.ticker.add((time) => {
   annotations.update(time);
   craft.update();
   wrist.tick();
+  music.tick();
 });
 
 buildTimelines();
