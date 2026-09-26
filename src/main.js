@@ -744,6 +744,9 @@ function buildTimelines() {
         const p = self.progress;
         if (p > 0.36 && !wrist.active.has(wrist.night)) wrist.start(wrist.night, true);
         else if (p < 0.3 && wrist.active.has(wrist.night)) { wrist.stop(wrist.night); wrist.night.currentTime = 0; }
+        // once night covers the whole screen the day film is hidden: stop decoding it
+        if (p > 0.93 && wrist.active.has(wrist.day)) wrist.stop(wrist.day);
+        else if (p < 0.9 && self.isActive && !wrist.active.has(wrist.day)) wrist.start(wrist.day);
       },
     }),
   })
@@ -761,13 +764,14 @@ function buildTimelines() {
     .to(wrist.night, { [half]: 0, duration: 0.16, ease: 'power2.inOut' }, 0.76)
     .to('#wristDay .wrist__tag', { opacity: 0, duration: 0.04 }, 0.76)
     .to('.wrist__facts > div', { opacity: 0, y: -20, duration: 0.05 }, 0.84)
-    .to('.wrist__panel', { opacity: 0, duration: 0.07 }, 0.93));
+    // hide the day panel before the night one fades out, or it shows through as a double exposure
+    .to('#wristDay', { opacity: 0, duration: 0.005 }, 0.92)
+    .to('#wristNight', { opacity: 0, duration: 0.07 }, 0.93));
 
   // studio copy; reset lighting when scrolling back above it
   keep(gsap.fromTo('#studio .studio__panel > *, #studio .studio__hint', { opacity: 0, y: 30 }, { opacity: 1, y: 0, stagger: 0.06, scrollTrigger: st('#studio', { start: 'top 75%', end: 'top 15%', scrub: true }) }));
   keep(ScrollTrigger.create({
     trigger: '#studio', start: 'top bottom', end: 'bottom top',
-    onToggle: (self) => { if (self.isActive) applyDial3D(); }, // a dial picked in the finale reaches the model
     onLeaveBack: () => resetStudio(),
   }));
 
@@ -939,8 +943,9 @@ function setActive(sel, pred) {
 
 // ------------------------------------------------------------------ dial choice (configurator + finale film)
 let dial3D = 'obsidian';
-// the 3D dial texture is costly to redraw: a choice made in the finale (canvas hidden there)
-// reaches the model only when the visitor heads back to the configurator
+// Redraws the 3D dial when the selection differs from what the model shows. A choice made in the
+// finale, where the film covers the canvas, is applied in idle time after the dissolve, and at the
+// latest in the frame the canvas comes back into view (see the main loop).
 function applyDial3D() {
   const k = $('#swatches .is-active').dataset.dial;
   if (k === dial3D) return;
@@ -1049,6 +1054,8 @@ for (const s of $$('#swatches .swatch')) {
     if (b.classList.contains('is-active')) return;
     sfx.click();
     chooseDial(b.dataset.dial);
+    if (stage.visible) applyDial3D();
+    else setTimeout(() => (window.requestIdleCallback || setTimeout)(applyDial3D), 1400);
   });
   $('#finaleSwatches').appendChild(b);
 }
@@ -1141,7 +1148,9 @@ gsap.ticker.add((time) => {
   cursor.update();
   if (!introDone && !document.body.classList.contains('is-intro')) return;
   const y = window.scrollY;
-  stage.visible = !hiddenRanges.some(([a, b]) => y > a && y < b);
+  const visible = !hiddenRanges.some(([a, b]) => y > a && y < b);
+  if (visible && !stage.visible) applyDial3D(); // coming back into view: catch up with a dial picked meanwhile
+  stage.visible = visible;
   stage.render();
   annotations.update(time);
   craft.update();
