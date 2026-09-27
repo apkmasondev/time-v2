@@ -12,12 +12,15 @@ import { makeDialTextures, makeBrushedTextures, makeDateTexture, makeCasebackTex
 // Blender (x, y, z) mm  ->  glTF (x, z, -y)
 const B = (x, y, z) => new THREE.Vector3(x, z, -y);
 
+// Date wheel [disc, numerals] as in the films: dark with white numerals on the dark dials,
+// white with dark numerals on the ice one (the yellow dial has no date).
+const DATE_DARK = ['#101113', '#efeee9'];
 export const DIALS = {
-  obsidian: { base: '#202226', print: '#f2f1ec', grain: 0.06, rough: 0.34, metal: 0.6, center: 'rgba(255,255,255,0.05)', edge: 'rgba(0,0,0,0.6)' },
+  obsidian: { base: '#202226', print: '#f2f1ec', grain: 0.06, rough: 0.34, metal: 0.6, center: 'rgba(255,255,255,0.05)', edge: 'rgba(0,0,0,0.6)', date: DATE_DARK },
   // hues sampled from the finale films, so the 3D dial and the film show the same colour
   glacier: { base: '#a2c7d6', print: '#101418', grain: 0.05, rough: 0.3, metal: 0.5, center: 'rgba(255,255,255,0.22)', edge: 'rgba(20,55,75,0.42)', date: ['#f3f3f0', '#101418'] },
-  abyss: { base: '#1c3c7c', print: '#f0efe9', grain: 0.07, rough: 0.32, metal: 0.65, center: 'rgba(120,160,255,0.2)', edge: 'rgba(0,3,18,0.72)' },
-  verde: { base: '#1d5c30', print: '#f0efe9', grain: 0.07, rough: 0.32, metal: 0.65, center: 'rgba(170,255,175,0.14)', edge: 'rgba(0,10,2,0.72)' },
+  abyss: { base: '#1c3c7c', print: '#f0efe9', grain: 0.07, rough: 0.32, metal: 0.65, center: 'rgba(120,160,255,0.2)', edge: 'rgba(0,3,18,0.72)', date: DATE_DARK },
+  verde: { base: '#1d5c30', print: '#f0efe9', grain: 0.07, rough: 0.32, metal: 0.65, center: 'rgba(170,255,175,0.14)', edge: 'rgba(0,10,2,0.72)', date: DATE_DARK },
   // lower metalness keeps it a lacquered yellow instead of turning brassy gold
   // no-date version, as in the films: the aperture closes and the 3 o'clock index runs full length
   solar: { base: '#e3ae1e', print: '#17140c', grain: 0.05, rough: 0.28, metal: 0.18, center: 'rgba(255,245,200,0.3)', edge: 'rgba(120,70,0,0.45)', noDate: true },
@@ -53,7 +56,7 @@ export class WatchStage {
     this.pmrem = new THREE.PMREMGenerator(this.renderer);
     this._v = new THREE.Vector3();
     this.dateDay = new Date().getDate();
-    this.dateInk = ['#efeee9', '#0d0d0f'];
+    this.dateInk = DIALS.obsidian.date;
 
     // Choreography state — tweened from the outside (GSAP) and read every frame.
     this.S = {
@@ -208,7 +211,8 @@ export class WatchStage {
       specularIntensity: 0.8, iridescence: 0.3, iridescenceIOR: 1.35, iridescenceThicknessRange: [200, 340],
       transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, envMapIntensity: 1.0,
     });
-    const date = new THREE.MeshStandardMaterial({ map: makeDateTexture(this.dateDay), roughness: 0.45 });
+    const [bg, ink] = this.dateInk;
+    const date = new THREE.MeshStandardMaterial({ map: makeDateTexture(this.dateDay, { bg, ink }), roughness: 0.45 });
     const flange = new THREE.MeshPhysicalMaterial({ color: 0x141416, roughness: 0.38, metalness: 0.7 });
     const cb = makeCasebackTextures(this.isMobile ? 1024 : 2048);
     const caseback = new THREE.MeshPhysicalMaterial({
@@ -408,7 +412,7 @@ export class WatchStage {
     Object.assign(this.mats.dial, { map: t.map, roughnessMap: t.orm, metalnessMap: t.orm, anisotropyMap: t.aniso });
     this.mats.dial.needsUpdate = true;
     this.mats.dialTex = t;
-    this.dateInk = v.date || ['#efeee9', '#0d0d0f'];
+    this.dateInk = v.date || DATE_DARK;
     this._setDate(new Date().getDate());
     this._setNoDate(!!v.noDate);
     old?.map.dispose(); old?.orm.dispose();
